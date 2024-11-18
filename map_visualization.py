@@ -74,7 +74,7 @@ class Visualizer:
             plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=3)
 
     @staticmethod
-    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di):
+    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log):
         """
         Draw a single frame of the animation.
         """
@@ -87,6 +87,7 @@ class Visualizer:
         plt.axis("equal")
         plt.grid(True)
         plt.title(f"Speed [km/h]: {state.v * 3.6:.2f}")
+        plt.suptitle(f"target Speed [km/h]: {v_log * 3.6:.2f}")
         plt.pause(0.001)
 
     @staticmethod

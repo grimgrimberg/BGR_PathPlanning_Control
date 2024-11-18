@@ -1,14 +1,14 @@
 import time
 import math
 import logging
-import numpy as np 
+import numpy as np
 from fsd_path_planning import PathPlanner, MissionTypes
 from map_visualization import Visualizer
 from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
-from car_state import State ,States
-from control import update_target
-
+from car_state import State, States
+from control import update_target, AccelerationPIDController
+import matplotlib.pyplot as plt
 
 # Simulation parameters
 T = 500000.0  # Max simulation time [s]
@@ -18,10 +18,19 @@ dt = 0.05  # Time step [s]
 animate = True
 logger = logging.getLogger('SimLogger')
 
-def animation_main_loop(client, path, car_position, car_direction, cones_by_type, speed_controller, steering_controller, pid_controller=True):
+def animation_main_loop(
+    client,
+    path,
+    car_position,
+    car_direction,
+    cones_by_type,
+    acceleration_controller: AccelerationPIDController,
+    steering_controller,
+):
     logger.info("Starting animation main loop")
 
     cx, cy = path[:, 1], path[:, 2]
+    curve = path[:, 3]
     target_ind = 0
     lastIndex = len(cx) - 1
 
@@ -42,21 +51,33 @@ def animation_main_loop(client, path, car_position, car_direction, cones_by_type
 
     while T >= curr_time and lastIndex > target_ind:
         time.sleep(dt)
-        
-        state, heading_error, target_ind, cx, cy = update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind)
 
-        di = steering_controller.compute_steering(heading_error)
-        ai = speed_controller.compute_acceleration(state.v)
+        # Update state and target
+        state, heading_error, target_ind, cx, cy, curve = update_target(
+            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve
+        )
+        path = np.column_stack((np.arange(len(cx)), cx, cy))
 
-        sim_car_controls(client, di, ai)
+        # Control logic
+        if hasattr(steering_controller, 'compute_steering'):
+            steering_angle, target_ind = steering_controller.compute_steering(state, path, target_ind)
+            v_log = acceleration_controller.compute_breaking(curve, target_ind)
+            acceleration = acceleration_controller.compute_acceleration(state.v)
+        elif hasattr(steering_controller, 'compute_control'):
+            acceleration, steering_angle = steering_controller.compute_control(state, path)
+        else:
+            raise ValueError("Invalid steering controller type")
+
+        sim_car_controls(client, -steering_angle, acceleration)
 
         curr_time += dt
         state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
         states.append(curr_time, state_modifier)
 
         if animate:
-            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, di)
+            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log)
+            # if v_log is not None:
+            #     plt.plot(v_log)
 
     if animate:
         Visualizer.show(cx, cy, states)
-
