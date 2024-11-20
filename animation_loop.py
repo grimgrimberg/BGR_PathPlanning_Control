@@ -53,7 +53,7 @@ def animation_main_loop(
         time.sleep(dt)
 
         # Update state and target
-        state, heading_error, target_ind, cx, cy, curve = update_target(
+        state, target_ind, cx, cy, curve = update_target(
             client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve
         )
         path = np.column_stack((np.arange(len(cx)), cx, cy))
@@ -76,8 +76,6 @@ def animation_main_loop(
 
         if animate:
             Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log)
-            # if v_log is not None:
-            #     plt.plot(v_log)
 
     if animate:
         Visualizer.show(cx, cy, states)

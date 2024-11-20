@@ -10,23 +10,6 @@ from vehicle_config import Vehicle_config as conf
 # Constants for normalization
 MAX_STEER_ANGLE = conf.MAX_STEER  # Maximum steering angle in radians
 
-# State class
-class State:
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
-        """
-        State of the vehicle.
-
-        Args:
-            x (float): Position x [m].
-            y (float): Position y [m].
-            yaw (float): Heading angle [rad].
-            v (float): Speed [m/s].
-        """
-        self.x = x
-        self.y = y
-        self.yaw = yaw
-        self.v = v
-
 # PID Controller for Acceleration
 class AccelerationPIDController:
     def __init__(self, kp, ki, kd, setpoint):
@@ -56,11 +39,11 @@ class AccelerationPIDController:
         acceleration = np.clip(acceleration, conf.MAX_DECEL, conf.MAX_ACCEL)
         return acceleration
     
-    def compute_breaking(self, curv, target_ind):
+    def compute_breaking(self, curve, target_ind):
         # Logistic decay
         b = 8 # Sensitivity parameter
         c = 1 # Power parameter
-        v_logistic = self.maxspeed / (1 + b * np.abs(curv)**c)
+        v_logistic = self.maxspeed / (1 + b * np.abs(curve)**c)
         velocity = v_logistic[target_ind]
         self._update_desired_speed(velocity)
         return velocity
@@ -68,29 +51,6 @@ class AccelerationPIDController:
 
     def _update_desired_speed(self, velocity):
         self.pid.setpoint = velocity
-    
-
-
-# Steering PID Controller (Optional)
-class SteeringPIDController:
-    def __init__(self, kp, ki, kd, setpoint):
-        """
-        PID Controller for steering control.
-
-        Args:
-            kp (float): Proportional gain.
-            ki (float): Integral gain.
-            kd (float): Derivative gain.
-            setpoint (float): Desired heading angle [rad].
-        """
-        self.pid = PID(kp, ki, kd, setpoint)
-
-    def compute_steering(self, heading_error):
-        """Compute the steering angle"""
-        self.pid.setpoint = 0.0  # Desired heading error is zero
-        di = self.pid(heading_error)
-        di = np.clip(di, -conf.MAX_STEER, conf.MAX_STEER)
-        return di
 
 # Pure Pursuit Controller
 class PurePursuitController:
@@ -141,7 +101,7 @@ class PurePursuitController:
         steering = math.atan2(2.0 * conf.WB * math.sin(alpha) / Lf, 1.0)
         steering = np.clip(steering, -conf.MAX_STEER, conf.MAX_STEER)
         return steering, ind
-
+ 
 # Stanley Controller
 class StanleyController:
     def __init__(self, k=1.0, k_soft=0.1):
@@ -179,7 +139,7 @@ class StanleyController:
         nearest_x = cx[target_ind]
         nearest_y = cy[target_ind]
 
-        # Heading error
+        # Path heading at the nearest point
         if target_ind < len(cx) - 1:
             path_dx = cx[target_ind + 1] - cx[target_ind]
             path_dy = cy[target_ind + 1] - cy[target_ind]
@@ -188,10 +148,14 @@ class StanleyController:
             path_dy = cy[target_ind] - cy[target_ind - 1]
 
         path_yaw = math.atan2(path_dy, path_dx)
+
+        # Heading error
         theta_e = normalize_angle(path_yaw - state.yaw)
 
         # Cross-track error
-        e_ct = np.sin(theta_e) * d[target_ind]
+        dx = nearest_x - state.x
+        dy = nearest_y - state.y
+        e_ct = -dx * np.sin(path_yaw) + dy * np.cos(path_yaw)
 
         # Steering control law
         steering = theta_e + math.atan2(self.k * e_ct, state.v + self.k_soft)
@@ -351,16 +315,7 @@ def normalize_angle_180(angle):
 def update_path_planner(client, path_planner, car_position, car_direction):
     """Update the path planner and retrieve new path"""
     cones_by_type, car_position, car_direction = load_cones_from_referee(client)
-    out = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction, True)
-    (
-        path,
-        sorted_left,
-        sorted_right,
-        left_cones_with_virtual,
-        right_cones_with_virtual,
-        left_to_right_match,
-        right_to_left_match,
-    ) = out
+    path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction)
     cx, cy = path[:, 1], -path[:, 2]
     curve = path[:,3]  
     return cx, cy, curve
@@ -371,20 +326,6 @@ def update_target(client, cx, cy, path_planner, car_position, car_direction, sta
         target_ind = 0
     x, y, yaw, speed = sim_car_state(client)
     state.x, state.y, state.yaw, state.v = x, y, yaw, speed
-
     target_ind = find_target_point(state, cx, cy, target_ind)
-    target_x, target_y = cx[target_ind], cy[target_ind]
-
-    dx, dy = target_x - state.x, target_y - state.y
-    target_yaw = math.atan2(dy, dx)
-    heading_error = normalize_angle_180(target_yaw - state.yaw)
-
-    return state, heading_error, target_ind, cx, cy, curve
-
-def send_control_commands(client, acceleration, steering_angle):
-    """Send control commands to the simulator"""
-    # Implement the function to send acceleration and steering commands to the simulator
-    # Example:
-    # client.setCarControls(acceleration, steering_angle)
-    pass
-
+    
+    return state, target_ind, cx, cy, curve
