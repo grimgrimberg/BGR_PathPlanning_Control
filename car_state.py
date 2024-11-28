@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from vehicle_config import Vehicle_config
+from vehicle_config import Vehicle_config as conf
 
 class States:
     def __init__(self):
@@ -30,7 +30,7 @@ class State:
     def update(self, a, delta):
         # Dynamic bicycle model integration step
         dynamic_model = DynamicBicycleModel()
-        x_next = dynamic_model.predict_next_state([self.x, self.y, self.yaw, self.v, self.r, self.beta], [delta, a], dt)
+        x_next = dynamic_model.predict_next_state([self.x, self.y, self.yaw, self.v, self.r, self.beta], [delta, a], dt=conf.dt)
 
         # Unpack the updated state
         self.x, self.y, self.yaw, self.v, self.r, self.beta = x_next
@@ -40,10 +40,10 @@ class State:
         """
         Update the positions of both the rear and front axles of the vehicle based on the current state.
         """
-        self.rear_x = self.x - (Vehicle_config.l_f * math.cos(self.yaw))
-        self.rear_y = self.y - (Vehicle_config.l_f * math.sin(self.yaw))
-        self.front_x = self.x + (Vehicle_config.l_r * math.cos(self.yaw))
-        self.front_y = self.y + (Vehicle_config.l_r * math.sin(self.yaw))
+        self.rear_x = self.x - (conf.l_f * math.cos(self.yaw))
+        self.rear_y = self.y - (conf.l_f * math.sin(self.yaw))
+        self.front_x = self.x + (conf.l_r * math.cos(self.yaw))
+        self.front_y = self.y + (conf.l_r * math.sin(self.yaw))
 
     def calc_distance(self, point_x, point_y, use_front=True):
         """
@@ -64,8 +64,9 @@ class State:
             dx = self.rear_x - point_x
             dy = self.rear_y - point_y
         return math.hypot(dx, dy)
+    
 class DynamicBicycleModel:
-    def __init__(self, m=Vehicle_config.m, I_z=Vehicle_config.I_z, l_f=Vehicle_config.l_f, l_r=Vehicle_config.l_r, c_f=Vehicle_config.c_f, c_r=Vehicle_config.c_r, mu=Vehicle_config.mu):
+    def __init__(self, m=conf.m, I_z=conf.I_z, l_f=conf.l_f, l_r=conf.l_r, c_f=conf.c_f, c_r=conf.c_r, mu=conf.mu):
         """
         Initialize the dynamic bicycle model.
 
