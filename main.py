@@ -6,9 +6,10 @@ from fsd_path_planning import PathPlanner, MissionTypes
 from sim_util import init_client, load_cones_from_referee
 from vehicle_config import Vehicle_config as conf
 from animation_loop import animation_main_loop
-from control import (
+from controllers import (
     AccelerationPIDController,
     get_steering_controller,
+    LQGAccelerationController,
 )
 
 def main():
@@ -32,10 +33,12 @@ def main():
         kd=conf.kd_accel,
         setpoint=conf.TARGET_SPEED
     )
+    # acceleration_controller = LQGAccelerationController(dt=conf.dt) #LQG
+
 
     # Select steering controller by name
     # steering_controller_name = 'pure_pursuit'  # Options: 'pure_pursuit', 'stanley', 'mpc'
-    steering_controller_name = 'pure_pursuit'  # Options: 'pure_pursuit', 'stanley', 'mpc'
+    steering_controller_name = 'stanley'  # Options: 'pure_pursuit', 'stanley', 'mpc'
     # steering_controller_name = 'mpc'  # Options: 'pure_pursuit', 'stanley', 'mpc'
 
     steering_controller = get_steering_controller(name=steering_controller_name)

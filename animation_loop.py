@@ -7,8 +7,7 @@ from map_visualization import Visualizer
 from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
-from control import update_target, AccelerationPIDController
-import matplotlib.pyplot as plt
+from controllers import update_target, AccelerationPIDController, LQGAccelerationController
 
 # Simulation parameters
 T = 500000.0  # Max simulation time [s]
@@ -24,7 +23,7 @@ def animation_main_loop(
     car_position,
     car_direction,
     cones_by_type,
-    acceleration_controller: AccelerationPIDController,
+    acceleration_controller,
     steering_controller,
 ):
     logger.info("Starting animation main loop")
@@ -60,14 +59,26 @@ def animation_main_loop(
 
         # Control logic
         if hasattr(steering_controller, 'compute_steering'):
+            # Compute steering angle
             steering_angle, target_ind = steering_controller.compute_steering(state, path, target_ind)
-            v_log = acceleration_controller.compute_breaking(curve, target_ind)
-            acceleration = acceleration_controller.compute_acceleration(state.v)
+            #compute accelaation using pid
+            if isinstance(acceleration_controller,AccelerationPIDController): 
+                acceleration = acceleration_controller.compute_acceleration(state.v)
+                v_log = state.v
+            # Compute acceleration using LQG controller
+            elif isinstance(acceleration_controller, LQGAccelerationController):
+                curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
+                acceleration = acceleration_controller.compute_acceleration(state.v, curvature)
+                v_log = acceleration_controller.v_desired
+
         elif hasattr(steering_controller, 'compute_control'):
+            # For controllers like MPC that compute both acceleration and steering
             acceleration, steering_angle = steering_controller.compute_control(state, path)
+            v_log = state.v  # Use current speed if desired speed is not available
         else:
             raise ValueError("Invalid steering controller type")
 
+        # Send control commands to the simulator
         sim_car_controls(client, -steering_angle, acceleration)
 
         curr_time += dt

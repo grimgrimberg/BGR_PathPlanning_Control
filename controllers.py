@@ -6,6 +6,7 @@ import cvxpy as cp  # For MPC
 from simple_pid import PID
 from sim_util import load_cones_from_referee, sim_car_state
 from vehicle_config import Vehicle_config as conf
+import control as ctrl
 
 # Constants for normalization
 MAX_STEER_ANGLE = conf.MAX_STEER  # Maximum steering angle in radians
@@ -51,6 +52,110 @@ class AccelerationPIDController:
 
     def _update_desired_speed(self, velocity):
         self.pid.setpoint = velocity
+
+class LQGAccelerationController:
+    def __init__(self, dt):
+        self.dt = dt
+
+        # Augmented state: [e_v; integral of e_v]
+        self.A = np.array([[1, 0],
+                           [dt, 1]])
+        self.B = np.array([[dt],
+                           [0]])
+        self.C = np.array([[1, 0]])
+
+        # LQR weighting matrices (tune these parameters)
+        q_e_v = 10.0    # Cost for speed error
+        q_int_e_v = 100.0  # Cost for integral of speed error
+        self.Q = np.diag([q_e_v, q_int_e_v])
+        r = 0.001  # Control effort cost
+        self.R = np.array([[r]])
+
+        # Solve the discrete-time LQR problem
+        self.K, _, _ = ctrl.dlqr(self.A, self.B, self.Q, self.R)
+        print(f"LQR Gain K: {self.K}")
+
+        # Kalman filter noise covariances
+        process_noise_variance = 0.1
+        measurement_noise_variance = 0.5
+        self.Q_kf = np.diag([process_noise_variance, process_noise_variance])
+        self.R_kf = np.array([[measurement_noise_variance]])
+
+        # Initialize state estimate and covariance
+        self.x_hat = np.array([[0.0],  # Initial speed error estimate
+                               [0.0]])  # Initial integral error estimate
+        self.P = np.eye(2) * 1.0  # Initial estimate covariance
+
+        # Previous control input
+        self.a_k_prev = 0.0
+
+        # Initialize desired speed
+        self.v_desired = 0.0
+
+    def compute_acceleration(self, current_speed, curvature):
+        # Compute desired speed based on curvature
+        v_desired = self.compute_desired_speed(curvature)
+        self.v_desired = v_desired
+
+        # Measurement (speed error)
+        e_v_measurement = current_speed - v_desired
+
+        # Kalman filter update
+        self.x_hat, self.P = self.kalman_filter_update(
+            self.x_hat, self.P, self.a_k_prev, e_v_measurement)
+
+        # LQR control law
+        a_k = -self.K @ self.x_hat
+
+        # Apply acceleration limits
+        a_k = np.clip(a_k, conf.MAX_DECEL, conf.MAX_ACCEL)
+
+        # Update previous control input
+        self.a_k_prev = a_k.item()
+
+        return a_k.item()
+
+
+
+    def kalman_filter_update(self, x_hat, P, a_k_prev, z_k):
+        # Predict
+        x_pred = self.A @ x_hat + self.B * a_k_prev
+        P_pred = self.A @ P @ self.A.T + self.Q_kf
+
+        # Measurement residual
+        y = z_k - (self.C @ x_pred)
+
+        # Innovation covariance
+        S = self.C @ P_pred @ self.C.T + self.R_kf
+
+        # Kalman gain
+        K_kf = P_pred @ self.C.T @ np.linalg.inv(S)
+
+        # Updated state estimate
+        x_hat_new = x_pred + K_kf @ y
+
+        # Updated covariance estimate
+        P_new = (np.eye(self.A.shape[0]) - K_kf @ self.C) @ P_pred
+
+        return x_hat_new, P_new
+
+
+    def compute_desired_speed(self, curvature):
+        """
+        Compute the desired speed based on curvature.
+
+        Args:
+            curvature (float): Curvature at the target point.
+
+        Returns:
+            float: Desired speed [m/s].
+        """
+        # Define the relationship between curvature and desired speed
+        a = conf.k_expo       # Sensitivity parameter for exponential decay
+        
+        max_speed = conf.TARGET_SPEED  # Maximum desired speed
+        v_desired = max_speed * np.exp(-a * np.abs(curvature))
+        return v_desired
 
 # Pure Pursuit Controller
 class PurePursuitController:
@@ -104,6 +209,97 @@ class PurePursuitController:
  
 # Stanley Controller
 class StanleyController:
+    def __init__(self, k=1.0, k_soft=1.0, max_steer_rate=np.deg2rad(30), alpha=0.5, lookahead_distance=0.0):
+        """
+        Improved Stanley Steering Controller.
+
+        Args:
+            k (float): Proportional gain for the cross-track error.
+            k_soft (float): Softening constant to avoid division by zero.
+            max_steer_rate (float): Maximum rate of change of the steering angle [rad/s].
+            alpha (float): Smoothing factor for steering command (0 < alpha <= 1).
+            lookahead_distance (float): Optional look-ahead distance [m].
+        """
+        self.k = k
+        self.k_soft = k_soft
+        self.max_steer_rate = max_steer_rate
+        self.alpha = alpha  # For low-pass filtering
+        self.lookahead_distance = lookahead_distance
+        self.previous_steering = 0.0  # Initialize previous steering angle
+
+    def compute_steering(self, state, path, target_ind, dt):
+        """
+        Compute steering angle using the improved Stanley control algorithm.
+
+        Args:
+            state (State): Current state of the vehicle.
+            path (numpy.ndarray): Path coordinates [[index, x1, y1], [index, x2, y2], ...].
+            target_ind (int): Current target index on the path.
+            dt (float): Time step [s].
+
+        Returns:
+            float: Steering angle [rad].
+            int: Updated target index.
+        """
+        cx = path[:, 1]
+        cy = path[:, 2]
+
+        # Find the nearest path point (with optional look-ahead)
+        dx = cx - state.x
+        dy = cy - state.y
+        d = np.hypot(dx, dy)
+        target_ind = np.argmin(d)
+
+        # Apply look-ahead if specified
+        if self.lookahead_distance > 0:
+            while target_ind < len(cx) - 1:
+                distance = np.hypot(cx[target_ind] - state.x, cy[target_ind] - state.y)
+                if distance >= self.lookahead_distance:
+                    break
+                target_ind += 1
+
+        nearest_x = cx[target_ind]
+        nearest_y = cy[target_ind]
+
+        # Path heading at the nearest point
+        if target_ind < len(cx) - 1:
+            path_dx = cx[target_ind + 1] - cx[target_ind]
+            path_dy = cy[target_ind + 1] - cy[target_ind]
+        else:
+            path_dx = cx[target_ind] - cx[target_ind - 1]
+            path_dy = cy[target_ind] - cy[target_ind - 1]
+
+        path_yaw = math.atan2(path_dy, path_dx)
+
+        # Heading error
+        theta_e = normalize_angle(path_yaw - state.yaw)
+
+        # Cross-track error using lateral error projection
+        dx = nearest_x - state.x
+        dy = nearest_y - state.y
+        e_ct = -dx * np.sin(path_yaw) + dy * np.cos(path_yaw)
+
+        # Adaptive gain scheduling based on speed
+        adaptive_k = self.k / (state.v + self.k_soft)
+
+        # Steering control law
+        steering = theta_e + math.atan2(adaptive_k * e_ct, 1.0)
+        steering = normalize_angle(steering)
+
+        # Limit steering rate
+        max_delta = self.max_steer_rate * dt
+        steering = np.clip(steering, self.previous_steering - max_delta, self.previous_steering + max_delta)
+
+        # Low-pass filter steering angle
+        steering = self.alpha * steering + (1 - self.alpha) * self.previous_steering
+
+        # Update previous steering angle
+        self.previous_steering = steering
+
+        # Clip to maximum steering angle
+        steering = np.clip(steering, -conf.MAX_STEER, conf.MAX_STEER)
+
+        return steering, target_ind
     def __init__(self, k=1.0, k_soft=0.1):
         """
         Stanley Steering Controller.
