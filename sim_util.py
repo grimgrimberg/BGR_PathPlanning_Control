@@ -90,14 +90,32 @@ def sim_car_state(client):
 
 # Set car controls in simulator
 def sim_car_controls(client, di, ai):
+    """
+    Sends control commands to the vehicle.
+
+    Args:
+        client: AirSim client instance.
+        di (float): Steering command [rad].
+        ai (float): Acceleration command [m/s^2].
+    """
     car_controls = fsds.CarControls()
-    car_controls.steering = di
-    car_controls.throttle = ai / conf.MAX_ACCEL
-    car_controls.brake = 0.0
+    car_controls.steering = di / conf.MAX_STEER  # Normalize steering if necessary
 
-    # Ensure controls are within valid range
-    car_controls.throttle = np.clip(car_controls.throttle, 0.0, 1.0)
-    car_controls.brake = np.clip(car_controls.brake, 0.0, 1.0)
+    if ai >= 0:
+        # Positive acceleration: map to throttle
+        throttle_cmd = ai / conf.MAX_ACCEL
+        car_controls.throttle = np.clip(throttle_cmd, 0.0, 1.0)
+        car_controls.brake = 0.0
+    else:
+        # Negative acceleration: map to brake
+        brake_cmd = -ai / conf.MAX_DECEL  # conf.MAX_DECEL should be negative
+        car_controls.throttle = 0.0
+        car_controls.brake = np.clip(brake_cmd, 0.0, 1.0)
 
-    logger.info(f"Setting simulator controls: {car_controls}")
+    # Log the control commands
+    logger.debug(f"Steering command: {car_controls.steering}")
+    logger.debug(f"Throttle command: {car_controls.throttle}")
+    logger.debug(f"Brake command: {car_controls.brake}")
+
+    # Send controls to AirSim
     client.setCarControls(car_controls)
