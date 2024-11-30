@@ -5,6 +5,7 @@ from fsd_path_planning.utils.math_utils import unit_2d_vector_from_angle
 from vehicle_config import Vehicle_config as conf
 import logging
 import fsds # local directory
+from fsds.utils import to_eularian_angles
 import math
 from fsd_path_planning import ConeTypes
 
@@ -48,26 +49,46 @@ def load_cons_from_lidar(client: fsds.FSDSClient):
     points = np.reshape(points, (int(points.shape[0]/3), 3))
 
     car_position, car_direction = get_car_orientation(client)
+    car_state = client.getCarState()
+    orientation = car_state.kinematics_estimated.orientation
+    yaw = (to_eularian_angles(orientation)[2])
+
+    # yaw = normalize_yaw(to_eularian_angles(orientation)[2])
+    # print(to_eularian_angles(orientation))
+    # exit()
     # Go through all the points and find nearby groups of points that are close together as those will probably be cones.
     current_group = []
     cones = []
     for i in range(1, len(points)):
         # Get the distance from current to previous point
         distance_to_last_point = distance(points[i][0], points[i][1], points[i-1][0], points[i-1][1])
-        if distance_to_last_point < 0.2:
-            # Points closer together then 20 cm are part of the same group
+        if distance_to_last_point < 0.1:
+            # Points closer together then 10 cm are part of the same group
             current_group.append({'x': points[i][0], 'y': points[i][1]})
         else:
-            # points further away indiate a split between groups
-            if len(current_group) > 0:
-                cone = pointgroup_to_cone(current_group)
-                cone['x'] += lidardata.pose.position.x_val
-                cone['y'] += lidardata.pose.position.y_val
-                # calculate distance between lidar and cone
-                if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
-                    # cone['y'] *= -1 
-                    if cone not in cones:
-                        cones.append(cone)
+                # cone['y'] *= -1 
+                # points further away indiate a split between groups
+                if len(current_group) > 0:
+                    cone = pointgroup_to_cone(current_group)
+                    if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
+                        old_x,old_y = cone['x'],cone['y']
+                        cone['x'] = np.cos(-yaw) * old_x - np.sin(-yaw) * old_y
+                        cone['y'] = np.sin(-yaw) * old_x + np.cos(-yaw) * old_y
+                        cone['x'] -= car_position[0]
+                        cone['y'] -= car_position[1]
+                        cone['x'] = -cone['x']
+                        cone['y'] = cone['y']
+
+                        if cone not in cones:
+                            cones.append(cone)
+
+                # # calculate distance between lidar and cone
+                # if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
+                #     # cone['y'] *= -1 
+                #     if cone not in cones:
+                #         cones.append(cone)
+                # cones.append(cone)
+
                 current_group = []
     
     cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
