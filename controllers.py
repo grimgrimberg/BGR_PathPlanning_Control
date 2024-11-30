@@ -4,9 +4,10 @@ import numpy as np
 import math
 import cvxpy as cp  # For MPC
 from simple_pid import PID
-from sim_util import load_cones_from_referee, sim_car_state
+from sim_util import load_cones_from_referee, sim_car_state, load_cons_from_lidar
 from vehicle_config import Vehicle_config as conf
 import control as ctrl
+from fsd_path_planning import ConeTypes
 
 # Constants for normalization
 MAX_STEER_ANGLE = conf.MAX_STEER  # Maximum steering angle in radians
@@ -511,17 +512,19 @@ def normalize_angle_180(angle):
 def update_path_planner(client, path_planner, car_position, car_direction):
     """Update the path planner and retrieve new path"""
     cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+    # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
     path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction)
     cx, cy = path[:, 1], -path[:, 2]
     curve = path[:,3]  
-    return cx, cy, curve
+    return cx, cy, curve, cones_by_type
 
-def update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve):
+def update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type):
+    cones_by_type = cones_by_type
     if target_ind > 5:
-        cx, cy, curve = update_path_planner(client, path_planner, car_position, car_direction)
+        cx, cy, curve, cones_by_type = update_path_planner(client, path_planner, car_position, car_direction)
         target_ind = 0
     x, y, yaw, speed = sim_car_state(client)
     state.x, state.y, state.yaw, state.v = x, y, yaw, speed
     target_ind = find_target_point(state, cx, cy, target_ind)
     
-    return state, target_ind, cx, cy, curve
+    return state, target_ind, cx, cy, curve, cones_by_type

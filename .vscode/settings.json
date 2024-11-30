@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./ft-fsd-path-planning"
+    ]
+}

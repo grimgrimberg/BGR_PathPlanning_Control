@@ -2,12 +2,13 @@ import time
 import math
 import logging
 import numpy as np
-from fsd_path_planning import PathPlanner, MissionTypes
+from fsd_path_planning import PathPlanner, MissionTypes, ConeTypes
 from map_visualization import Visualizer
 from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
+from sim_util import load_cons_from_lidar
 
 # Simulation parameters
 T = 500000.0  # Max simulation time [s]
@@ -25,6 +26,7 @@ def animation_main_loop(
     cones_by_type,
     acceleration_controller,
     steering_controller,
+    referee_map
 ):
     logger.info("Starting animation main loop")
 
@@ -52,8 +54,8 @@ def animation_main_loop(
         time.sleep(dt)
 
         # Update state and target
-        state, target_ind, cx, cy, curve = update_target(
-            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve
+        state, target_ind, cx, cy, curve, cones_by_type= update_target(
+            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type
         )
         path = np.column_stack((np.arange(len(cx)), cx, cy))
 
@@ -86,7 +88,9 @@ def animation_main_loop(
         states.append(curr_time, state_modifier)
 
         if animate:
-            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log)
+            lidar_cones_by_type, car_position, car_direction = load_cons_from_lidar(client)
+            cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
+            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log, referee_map, cones_lidar)
 
     if animate:
         Visualizer.show(cx, cy, states)
