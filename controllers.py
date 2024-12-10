@@ -512,16 +512,30 @@ def normalize_angle_180(angle):
 def update_path_planner(client, path_planner, car_position, car_direction):
     """Update the path planner and retrieve new path"""
     cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+    # lidar_cones_by_type,car_position, car_direction = load_cons_from_lidar(client)
     # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
     path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction)
     cx, cy = path[:, 1], -path[:, 2]
     curve = path[:,3]  
     return cx, cy, curve, cones_by_type
 
+def update_path_planner_lidar(client, path_planner, car_position, car_direction):
+    """Update the path planner and retrieve new path"""
+    # cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+    lidar_cones_by_type,car_position, car_direction = load_cons_from_lidar(client)
+    # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
+    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
+    cx, cy = path[:, 1], -path[:, 2]
+    curve = path[:,3]  
+    return cx, cy, curve, lidar_cones_by_type
+
+
 def update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type):
     cones_by_type = cones_by_type
     if target_ind > 5:
-        cx, cy, curve, cones_by_type = update_path_planner(client, path_planner, car_position, car_direction)
+        # first line is by referee global map
+        # cx, cy, curve, cones_by_type = update_path_planner(client, path_planner, car_position, car_direction)
+        cx, cy, curve, cones_by_type = update_path_planner_lidar(client, path_planner, car_position, car_direction)
         target_ind = 0
     x, y, yaw, speed = sim_car_state(client)
     state.x, state.y, state.yaw, state.v = x, y, yaw, speed

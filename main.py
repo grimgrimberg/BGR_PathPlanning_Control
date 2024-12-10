@@ -53,7 +53,7 @@ def main():
     # plt.show()
     # exit()
     logger.info("Initial path calculation...")
-    path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction)
+    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
 
     # Initialize acceleration controller
     acceleration_controller = AccelerationPIDController(
@@ -80,7 +80,7 @@ def main():
         path=path,
         car_position=car_position,
         car_direction=car_direction,
-        cones_by_type=cones_by_type,
+        cones_by_type=lidar_cones_by_type,
         acceleration_controller=acceleration_controller,
         steering_controller=steering_controller,
         referee_map=referee_map

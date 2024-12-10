@@ -36,7 +36,7 @@ def pointgroup_to_cone(group):
     return {'x': average_x, 'y': average_y}
 
 def load_cons_from_lidar(client: fsds.FSDSClient):
-    cones_range_cutoff = 40 # meters
+    cones_range_cutoff = 200 # meters
     # Get the pointcloud
     lidardata = client.getLidarData(lidar_name = 'Lidar')
 
@@ -71,13 +71,13 @@ def load_cons_from_lidar(client: fsds.FSDSClient):
                 if len(current_group) > 0:
                     cone = pointgroup_to_cone(current_group)
                     if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
-                        old_x,old_y = cone['x'],cone['y']
+                        old_x,old_y = cone['x'],-cone['y']
                         cone['x'] = np.cos(-yaw) * old_x - np.sin(-yaw) * old_y
                         cone['y'] = np.sin(-yaw) * old_x + np.cos(-yaw) * old_y
-                        cone['x'] -= car_position[0]
-                        cone['y'] -= car_position[1]
-                        cone['x'] = -cone['x']
-                        cone['y'] = cone['y']
+                        cone['x'] += car_position[0]
+                        cone['y'] += car_position[1]
+                        cone['x'] = cone['x']
+                        cone['y'] = -cone['y']
 
                         if cone not in cones:
                             cones.append(cone)
