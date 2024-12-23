@@ -11,7 +11,7 @@ class Vehicle_config():
     c_f = 16000  # Cornering stiffness front [N/rad]
     c_r = 17000  # Cornering stiffness rear [N/rad]
     mu = 1.0  # Coefficient of friction
-    TARGET_SPEED = 35 / 3.6  # Target speed [m/s]
+    TARGET_SPEED = 15 / 3.6  # Target speed [m/s]
 
     WB = l_f + l_r 
 
@@ -30,7 +30,7 @@ class Vehicle_config():
     MAX_ACCEL = 1.5  # [m/s^2]
     MAX_DECEL = -2.0  # [m/s^2]
     # MAX_SPEED = 20.0 / 3.6  # [m/s]
-    MAX_SPEED = 30 / 3.6 # [m/s]
+    MAX_SPEED = 40 / 3.6 # [m/s]
 
     MAX_STEER = np.deg2rad(30)  # [rad]
     # Lookahead distance for pure pursuit

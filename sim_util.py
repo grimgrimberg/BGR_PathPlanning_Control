@@ -188,6 +188,7 @@ def sim_car_controls(client, di, ai):
     else:
         # Negative acceleration: map to brake
         brake_cmd = -ai / conf.MAX_DECEL  # conf.MAX_DECEL should be negative
+        # brake_cmd = ai   # conf.MAX_DECEL should be negative
         car_controls.throttle = 0.0
         car_controls.brake = np.clip(brake_cmd, 0.0, 1.0)
 

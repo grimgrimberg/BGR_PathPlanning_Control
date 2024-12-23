@@ -101,6 +101,10 @@ class Visualizer:
         plt.cla()
         plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
         plt.plot(states.x, states.y, "-c", label="Vehicle Path")
+        # plt.title("Path Tracking")
+        # plt.plot(referee_map)
+        # plt.title("Path Tracking")
+
         # Visualizer.plot_map(referee_map)
         Visualizer.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
@@ -117,6 +121,7 @@ class Visualizer:
         Show the final animation plot.
         """
         plt.figure()
+        plt.title("Path Tracking")
         plt.plot(cx, cy, "r--", label="Planned Path")
         plt.plot(states.x, states.y, "-b", label="Vehicle Path")
         plt.legend()
