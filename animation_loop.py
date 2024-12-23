@@ -8,7 +8,7 @@ from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
-from sim_util import load_cons_from_lidar
+from sim_util import load_cones_from_lidar,load_cones_from_referee
 
 # Simulation parameters
 T = 500000.0  # Max simulation time [s]
@@ -29,6 +29,8 @@ def animation_main_loop(
     referee_map
 ):
     logger.info("Starting animation main loop")
+
+    # print("this is cx",path[1])
 
     cx, cy = path[:, 1], path[:, 2]
     curve = path[:, 3]
@@ -65,8 +67,10 @@ def animation_main_loop(
             steering_angle, target_ind = steering_controller.compute_steering(state, path, target_ind)
             #compute accelaation using pid
             if isinstance(acceleration_controller,AccelerationPIDController): 
-                acceleration = acceleration_controller.compute_acceleration(state.v)
-                v_log = state.v
+                curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
+                acceleration = acceleration_controller.compute_acceleration(state.v, curvature)
+                # v_log = state.v
+                v_log = acceleration_controller.maxspeed
             # Compute acceleration using LQG controller
             elif isinstance(acceleration_controller, LQGAccelerationController):
                 curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
@@ -88,8 +92,12 @@ def animation_main_loop(
         states.append(curr_time, state_modifier)
 
         if animate:
-            lidar_cones_by_type, car_position, car_direction = load_cons_from_lidar(client)
-            cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
+            lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+            cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+            if lidar_cones_by_type:
+                cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
+            else:
+                cones_lidar = cones_by_type
             Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log, referee_map, cones_lidar)
 
     if animate:

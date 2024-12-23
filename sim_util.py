@@ -35,14 +35,14 @@ def pointgroup_to_cone(group):
     average_y = average_y / len(group)
     return {'x': average_x, 'y': average_y}
 
-def load_cons_from_lidar(client: fsds.FSDSClient):
-    cones_range_cutoff = 200 # meters
+def load_cones_from_lidar(client: fsds.FSDSClient):
+    cones_range_cutoff = 50 # meters
     # Get the pointcloud
     lidardata = client.getLidarData(lidar_name = 'Lidar')
 
     # no points
     if len(lidardata.point_cloud) < 3:
-        return []
+        return None,None,None
 
     # Convert the list of floats into a list of xyz coordinates
     points = np.array(lidardata.point_cloud, dtype=np.dtype('f4'))

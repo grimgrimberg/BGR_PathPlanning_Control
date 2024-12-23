@@ -3,7 +3,7 @@
 import logging
 from logger import init_logger
 from fsd_path_planning import PathPlanner, MissionTypes
-from sim_util import init_client, load_cones_from_referee, load_cons_from_lidar
+from sim_util import init_client, load_cones_from_referee, load_cones_from_lidar
 from vehicle_config import Vehicle_config as conf
 from animation_loop import animation_main_loop
 from controllers import (
@@ -14,9 +14,14 @@ from controllers import (
 import matplotlib.pyplot as plt 
 from fsd_path_planning import ConeTypes
 
+from Preformance_analysis.simulation_logger import SimulationLogger
+
+
 def main():
     # Initialize the logger
     init_logger()
+    #Initiate SimLogger
+    sim_logger = SimulationLogger("simulation_log.csv")
     logger = logging.getLogger('SimLogger')
 
     # Initialize client and path planner
@@ -25,7 +30,8 @@ def main():
 
     # Load initial cones and car state
     cones_by_type, car_position, car_direction = load_cones_from_referee(client)
-    lidar_cones_by_type, car_position, car_direction = load_cons_from_lidar(client)
+    # cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+    # lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
     referee_map = cones_by_type
 # Plotting the cones
     # plt.figure(1)
@@ -53,7 +59,9 @@ def main():
     # plt.show()
     # exit()
     logger.info("Initial path calculation...")
-    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
+    # path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
+    path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction,return_intermediate_results=False)
+
 
     # Initialize acceleration controller
     acceleration_controller = AccelerationPIDController(
@@ -80,7 +88,8 @@ def main():
         path=path,
         car_position=car_position,
         car_direction=car_direction,
-        cones_by_type=lidar_cones_by_type,
+        # cones_by_type=lidar_cones_by_type,
+        cones_by_type=cones_by_type,
         acceleration_controller=acceleration_controller,
         steering_controller=steering_controller,
         referee_map=referee_map
@@ -88,3 +97,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Finalize logging
+    # sim_logger.close()
+
+    # Evaluate performance
+    # from performance_analysis.evaluate_performance import evaluate_simulation
+    # evaluate_simulation("simulation_log.csv")

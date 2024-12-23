@@ -100,7 +100,7 @@ class Visualizer:
         """
         plt.cla()
         plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
-        plt.plot(states.x, states.y, "-b", label="Vehicle Path")
+        plt.plot(states.x, states.y, "-c", label="Vehicle Path")
         # Visualizer.plot_map(referee_map)
         Visualizer.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
@@ -126,3 +126,44 @@ class Visualizer:
         plt.grid(True)
         plt.show()
 
+    # Class variables to store the history of CTE and heading error
+    cte_history = []
+    theta_e_history = []
+
+    @staticmethod
+    def cross_track_error(e_ct, path, cx, cy, theta_e):
+        """
+        Store the cross track error (and optional heading error).
+        
+        Args:
+            e_ct (float): The cross track error at the current timestep.
+            path (numpy.ndarray): Path coordinates [[index, x, y], ...].
+            cx (numpy.ndarray): X-coordinates of the path points.
+            cy (numpy.ndarray): Y-coordinates of the path points.
+            theta_e (float): Heading error at the current timestep.
+        """
+        Visualizer.cte_history.append(e_ct)
+        Visualizer.theta_e_history.append(theta_e)
+
+    @staticmethod
+    def plot_cte(dt=0.05):
+        """
+        Plot the stored cross track errors over time.
+        
+        Args:
+            dt (float): Time step between control updates. Adjust as needed.
+        """
+        if len(Visualizer.cte_history) == 0:
+            print("No CTE data to plot.")
+            return
+
+        time = np.arange(0, len(Visualizer.cte_history) * dt, dt)
+        
+        plt.figure(figsize=(10,4))
+        plt.plot(time, Visualizer.cte_history, label='Cross Track Error')
+        plt.xlabel('Time [s]')
+        plt.ylabel('CTE [m]')
+        plt.title('Cross Track Error Over Time')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
