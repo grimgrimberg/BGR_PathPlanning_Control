@@ -1,0 +1,21 @@
+name: formula_student_new
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - numba==0.59
+  - numpy
+  - scipy
+  - plotly
+  - matplotlib
+  - scikit-learn
+  - pip:
+    - control
+    - simple_pid
+    - cvxpy
+    - msgpack-rpc-python
+    - opencv-contrib-python
+    - icecream
+    - streamlit
+
+prefix: /home/bgr/anaconda3/envs/formula_student_new

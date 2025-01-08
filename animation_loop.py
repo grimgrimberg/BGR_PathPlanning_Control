@@ -2,17 +2,19 @@ import time
 import math
 import logging
 import numpy as np
-from fsd_path_planning import PathPlanner, MissionTypes
+from fsd_path_planning import PathPlanner, MissionTypes, ConeTypes
 from map_visualization import Visualizer
 from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
+from sim_util import load_cones_from_lidar,load_cones_from_referee
+from logger import log_timing
 
 # Simulation parameters
-T = 500000.0  # Max simulation time [s]
+T = 100.0  # Max simulation time [s]
 dt = 0.05  # Time step [s]
-
+Time_zero = time.perf_counter()
 # Visualization settings
 animate = True
 logger = logging.getLogger('SimLogger')
@@ -25,8 +27,11 @@ def animation_main_loop(
     cones_by_type,
     acceleration_controller,
     steering_controller,
+    referee_map
 ):
     logger.info("Starting animation main loop")
+
+    # print("this is cx",path[1])
 
     cx, cy = path[:, 1], path[:, 2]
     curve = path[:, 3]
@@ -45,26 +50,35 @@ def animation_main_loop(
     curr_time = 0.0
     states = States()
     states.append(curr_time, state)
-
+    Time_end = 0
     path_planner = PathPlanner(MissionTypes.trackdrive)
 
     while T >= curr_time and lastIndex > target_ind:
-        time.sleep(dt)
+    # while T >= Time_end-Time_zero and lastIndex > target_ind:
+        # time.sleep(dt)
 
         # Update state and target
-        state, target_ind, cx, cy, curve = update_target(
-            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve
+        start_time = time.perf_counter()
+        state, target_ind, cx, cy, curve, cones_by_type= update_target(
+            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type
         )
-        path = np.column_stack((np.arange(len(cx)), cx, cy))
+        path_track = np.column_stack((np.arange(len(cx)), cx, cy)) #List of XY cords of track
+        state_update_time = time.perf_counter() - start_time
+        print(f"State Update Time: {state_update_time:.4f} seconds")
+        log_timing('timing_log.csv', 'State_Update', state_update_time)
+
+
 
         # Control logic
         if hasattr(steering_controller, 'compute_steering'):
             # Compute steering angle
-            steering_angle, target_ind = steering_controller.compute_steering(state, path, target_ind)
+            steering_angle, target_ind = steering_controller.compute_steering(state, path_track, target_ind)
             #compute accelaation using pid
             if isinstance(acceleration_controller,AccelerationPIDController): 
-                acceleration = acceleration_controller.compute_acceleration(state.v)
-                v_log = state.v
+                curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
+                acceleration = acceleration_controller.compute_acceleration(state.v, curvature)
+                # v_log = state.v
+                v_log = acceleration_controller.maxspeed
             # Compute acceleration using LQG controller
             elif isinstance(acceleration_controller, LQGAccelerationController):
                 curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
@@ -73,7 +87,7 @@ def animation_main_loop(
 
         elif hasattr(steering_controller, 'compute_control'):
             # For controllers like MPC that compute both acceleration and steering
-            acceleration, steering_angle = steering_controller.compute_control(state, path)
+            acceleration, steering_angle = steering_controller.compute_control(state, path_track)
             v_log = state.v  # Use current speed if desired speed is not available
         else:
             raise ValueError("Invalid steering controller type")
@@ -86,7 +100,14 @@ def animation_main_loop(
         states.append(curr_time, state_modifier)
 
         if animate:
-            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log)
+            lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+            cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+            if lidar_cones_by_type:
+                cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
+            else:
+                cones_lidar = cones_by_type
+            Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log, referee_map, cones_lidar)
 
     if animate:
         Visualizer.show(cx, cy, states)
+    Time_end = time.perf_counter()

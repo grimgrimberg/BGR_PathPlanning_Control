@@ -61,27 +61,52 @@ class Visualizer:
         plt.plot(fl_wheel[0, :], fl_wheel[1, :], truckcolor)
         plt.plot(rl_wheel[0, :], rl_wheel[1, :], truckcolor)
 
+    
     @staticmethod
-    def plot_cones(cones_by_type):
+    def plot_map(cones_by_type):
         """
         Plot cones based on their type (left or right).
         """
         cones_left = cones_by_type[ConeTypes.LEFT]
         cones_right = cones_by_type[ConeTypes.RIGHT]
+        cones_unknown = cones_by_type[ConeTypes.UNKNOWN]
         if len(cones_left) > 0:
             plt.plot(cones_left[:, 0], cones_left[:, 1], "ob", label="Left Cones",markersize=3)
         if len(cones_right) > 0:
             plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=3)
+        if len(cones_unknown) > 0:
+            plt.plot(cones_unknown[:, 0], cones_unknown[:, 1], "og", label="Unkonwn Cones",markersize=3)
 
     @staticmethod
-    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log):
+    def plot_cones(cones_by_type, cones_lidar=[]):
+        """
+        Plot cones based on their type (left or right).
+        """
+
+        cones_left = cones_by_type[ConeTypes.LEFT]
+        cones_right = cones_by_type[ConeTypes.RIGHT]
+        
+        if len(cones_left) > 0:
+            plt.plot(cones_left[:, 0], cones_left[:, 1], "ob", label="Left Cones",markersize=3)
+        if len(cones_right) > 0:
+            plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=3)
+        if len(cones_lidar) > 0:
+            plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=3)
+
+    @staticmethod
+    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, referee_map, cones_lidar):
         """
         Draw a single frame of the animation.
         """
         plt.cla()
         plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
-        plt.plot(states.x, states.y, "-b", label="Vehicle Path")
-        Visualizer.plot_cones(cones_by_type)
+        plt.plot(states.x, states.y, "-c", label="Vehicle Path")
+        # plt.title("Path Tracking")
+        # plt.plot(referee_map)
+        # plt.title("Path Tracking")
+
+        # Visualizer.plot_map(referee_map)
+        Visualizer.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
         Visualizer.plot_car(state.x, -state.y, -state.yaw, steer=di)
         plt.axis("equal")
@@ -96,6 +121,7 @@ class Visualizer:
         Show the final animation plot.
         """
         plt.figure()
+        plt.title("Path Tracking")
         plt.plot(cx, cy, "r--", label="Planned Path")
         plt.plot(states.x, states.y, "-b", label="Vehicle Path")
         plt.legend()
@@ -105,3 +131,44 @@ class Visualizer:
         plt.grid(True)
         plt.show()
 
+    # Class variables to store the history of CTE and heading error
+    cte_history = []
+    theta_e_history = []
+
+    @staticmethod
+    def cross_track_error(e_ct, path, cx, cy, theta_e):
+        """
+        Store the cross track error (and optional heading error).
+        
+        Args:
+            e_ct (float): The cross track error at the current timestep.
+            path (numpy.ndarray): Path coordinates [[index, x, y], ...].
+            cx (numpy.ndarray): X-coordinates of the path points.
+            cy (numpy.ndarray): Y-coordinates of the path points.
+            theta_e (float): Heading error at the current timestep.
+        """
+        Visualizer.cte_history.append(e_ct)
+        Visualizer.theta_e_history.append(theta_e)
+
+    @staticmethod
+    def plot_cte(dt=0.05):
+        """
+        Plot the stored cross track errors over time.
+        
+        Args:
+            dt (float): Time step between control updates. Adjust as needed.
+        """
+        if len(Visualizer.cte_history) == 0:
+            print("No CTE data to plot.")
+            return
+
+        time = np.arange(0, len(Visualizer.cte_history) * dt, dt)
+        
+        plt.figure(figsize=(10,4))
+        plt.plot(time, Visualizer.cte_history, label='Cross Track Error')
+        plt.xlabel('Time [s]')
+        plt.ylabel('CTE [m]')
+        plt.title('Cross Track Error Over Time')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
