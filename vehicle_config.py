@@ -11,7 +11,7 @@ class Vehicle_config():
     c_f = 16000  # Cornering stiffness front [N/rad]
     c_r = 17000  # Cornering stiffness rear [N/rad]
     mu = 1.0  # Coefficient of friction
-    TARGET_SPEED = 15 / 3.6  # Target speed [m/s]
+    TARGET_SPEED = 20 / 3.6  # Target speed [m/s]
 
     WB = l_f + l_r 
 
