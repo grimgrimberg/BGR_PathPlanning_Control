@@ -16,15 +16,15 @@ class Vehicle_config():
     WB = l_f + l_r 
 
     # PID Controller parameters
-    kp_accel = 0.5
-    ki_accel = 0.00003
-    kd_accel = 0.0
+    kp_accel = 0.85
+    ki_accel = 0.9
+    kd_accel = 0.01
 
     # Curvature exponantial decay factor
-    k_expo = 1      # Sensitivity parameter for exponential decay
+    k_expo = 0.5      # Sensitivity parameter for exponential decay
     #for stanley
     k_stanley=1.3
-    k_soft_stanley=0.1
+    k_soft_stanley=0.01
 
     # Define limits
     MAX_ACCEL = 1.5  # [m/s^2]
