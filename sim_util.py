@@ -141,8 +141,8 @@ def load_cones_from_referee(client: fsds.FSDSClient):
     cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
     cones_by_type[ConeTypes.LEFT] = np.array(cones_by_colors[0])  # Yellow cones (Left)
     cones_by_type[ConeTypes.RIGHT] = np.array(cones_by_colors[1])  # Blue cones (Right)
-    # cones_by_type[ConeTypes.ORANGE_BIG] = np.array(cones_by_colors[2])  # Large Orange cones
-    # cones_by_type[ConeTypes.ORANGE_SMALL] = np.array(cones_by_colors[3])  # Small Orange cones
+    cones_by_type[ConeTypes.ORANGE_BIG] = np.array(cones_by_colors[2])  # Large Orange cones
+    cones_by_type[ConeTypes.ORANGE_SMALL] = np.array(cones_by_colors[3])  # Small Orange cones
 
     logger.info("Cones by type:")
     for i, cones in enumerate(cones_by_type):
@@ -176,6 +176,7 @@ def sim_car_controls(client, di, ai):
         client: AirSim client instance.
         di (float): Steering command [rad].
         ai (float): Acceleration command [m/s^2].
+        #kaki
     """
     car_controls = fsds.CarControls()
     car_controls.steering = di / conf.MAX_STEER  # Normalize steering if necessary

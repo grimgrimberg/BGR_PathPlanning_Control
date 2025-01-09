@@ -32,7 +32,7 @@ def main():
     # Initialize client and path planner
     start_time = time.perf_counter()
     client = init_client()
-    path_planner = PathPlanner(MissionTypes.trackdrive)
+    path_planner = PathPlanner(MissionTypes.skidpad)
     path_init_time = time.perf_counter() - start_time
     print(f"Path Planner Initialization Time: {path_init_time:.4f} seconds")
     log_timing('timing_log.csv', 'Initialization', path_init_time)

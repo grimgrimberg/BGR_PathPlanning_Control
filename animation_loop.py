@@ -51,7 +51,7 @@ def animation_main_loop(
     states = States()
     states.append(curr_time, state)
     Time_end = 0
-    path_planner = PathPlanner(MissionTypes.trackdrive)
+    path_planner = PathPlanner(MissionTypes.skidpad)
 
     while T >= curr_time and lastIndex > target_ind:
     # while T >= Time_end-Time_zero and lastIndex > target_ind:
