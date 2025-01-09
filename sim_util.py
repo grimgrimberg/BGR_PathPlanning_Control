@@ -38,7 +38,7 @@ def pointgroup_to_cone(group):
 def load_cones_from_lidar(client: fsds.FSDSClient):
     cones_range_cutoff = 50 # meters
     # Get the pointcloud
-    lidardata = client.getLidarData(lidar_name = 'Lidar')
+    lidardata = client.getLidarData(lidar_name = 'Lidar1')#lidar was from setting.json
 
     # no points
     if len(lidardata.point_cloud) < 3:

@@ -12,7 +12,7 @@ from sim_util import load_cones_from_lidar,load_cones_from_referee
 from logger import log_timing
 
 # Simulation parameters
-T = 100.0  # Max simulation time [s]
+T = 10.0  # Max simulation time [s]
 dt = 0.05  # Time step [s]
 Time_zero = time.perf_counter()
 # Visualization settings
@@ -51,7 +51,8 @@ def animation_main_loop(
     states = States()
     states.append(curr_time, state)
     Time_end = 0
-    path_planner = PathPlanner(MissionTypes.skidpad)
+    
+    path_planner = PathPlanner(MissionTypes.trackdrive)
 
     while T >= curr_time and lastIndex > target_ind:
     # while T >= Time_end-Time_zero and lastIndex > target_ind:
@@ -79,11 +80,17 @@ def animation_main_loop(
                 acceleration = acceleration_controller.compute_acceleration(state.v, curvature)
                 # v_log = state.v
                 v_log = acceleration_controller.maxspeed
+                states.v_log.append(v_log)
+                # states.append(curr_time, state, steering=steering_angle, acceleration=acceleration, v_log=v_log)
+
             # Compute acceleration using LQG controller
             elif isinstance(acceleration_controller, LQGAccelerationController):
                 curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
                 acceleration = acceleration_controller.compute_acceleration(state.v, curvature)
                 v_log = acceleration_controller.v_desired
+                states.v_log.append(v_log)
+                # states.append(curr_time, state, steering=steering_angle, acceleration=acceleration, v_log=v_log)
+
 
         elif hasattr(steering_controller, 'compute_control'):
             # For controllers like MPC that compute both acceleration and steering
@@ -97,7 +104,17 @@ def animation_main_loop(
 
         curr_time += dt
         state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
-        states.append(curr_time, state_modifier)
+        # states.append(curr_time, state, steering=steering_angle, acceleration=acceleration, v_log=v_log)
+        states.append(
+    curr_time,
+    state_modifier,
+    steering=steering_angle if 'steering_angle' in locals() else 0.0,  # Default to 0.0 if undefined
+    acceleration=acceleration if 'acceleration' in locals() else 0.0,  # Default to 0.0 if undefined
+    v_log=v_log if 'v_log' in locals() else 0.0  # Default to 0.0 if undefined
+)
+
+        # state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
+        # states.append(curr_time, state_modifier)
 
         if animate:
             lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
@@ -110,4 +127,10 @@ def animation_main_loop(
 
     if animate:
         Visualizer.show(cx, cy, states)
+        Visualizer.plot_cte(dt=dt)
     Time_end = time.perf_counter()
+    Visualizer.show(cx, cy, states)  # Existing path visualization
+    # New plots
+    Visualizer.plot_speed_profile(states)
+    Visualizer.plot_path_deviation(cx, cy, states)
+    Visualizer.plot_control_inputs(states)

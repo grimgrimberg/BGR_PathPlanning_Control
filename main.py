@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from fsd_path_planning import ConeTypes
 
 from Preformance_analysis.simulation_logger import SimulationLogger
+from map_visualization import Visualizer
 
 
 
@@ -32,7 +33,7 @@ def main():
     # Initialize client and path planner
     start_time = time.perf_counter()
     client = init_client()
-    path_planner = PathPlanner(MissionTypes.skidpad)
+    path_planner = PathPlanner(MissionTypes.trackdrive)
     path_init_time = time.perf_counter() - start_time
     print(f"Path Planner Initialization Time: {path_init_time:.4f} seconds")
     log_timing('timing_log.csv', 'Initialization', path_init_time)
@@ -103,6 +104,14 @@ if __name__ == "__main__":
     main()
     print("ive exitied the main and im going to visualize time")
     visualize_timing_data('timing_log.csv')
+    
+    # Visualizer.show(cx, cy, states)  # Existing path visualization
+    # # New plots
+    # Visualizer.plot_speed_profile(states)
+    # Visualizer.plot_path_deviation(cx, cy, states)
+    # Visualizer.plot_control_inputs(states)
+    # visualize_timing_data("timing_log.csv")
+
 
     # Finalize logging
     # sim_logger.close()

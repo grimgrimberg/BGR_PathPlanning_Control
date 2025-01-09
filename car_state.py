@@ -2,6 +2,21 @@ import math
 import numpy as np
 from vehicle_config import Vehicle_config as conf
 
+# class States:
+#     def __init__(self):
+#         self.x = []
+#         self.y = []
+#         self.yaw = []
+#         self.v = []
+#         self.t = []
+
+#     def append(self, t, state):
+#         self.x.append(state.x)
+#         self.y.append(state.y)
+#         self.yaw.append(state.yaw)
+#         self.v.append(state.v)
+#         self.t.append(t)
+
 class States:
     def __init__(self):
         self.x = []
@@ -9,14 +24,34 @@ class States:
         self.yaw = []
         self.v = []
         self.t = []
+        self.steering = []  # Add for steering data
+        self.acceleration = []  # Add for acceleration data
+        self.v_log = []
 
-    def append(self, t, state):
+    # def append(self, t, state, steering=None, acceleration=None):
+    #     self.x.append(state.x)
+    #     self.y.append(state.y)
+    #     self.yaw.append(state.yaw)
+    #     self.v.append(state.v)
+    #     self.t.append(t)
+    #     if steering is not None:
+    #         self.steering.append(steering)
+    #     if acceleration is not None:
+    #         self.acceleration.append(acceleration)
+    def append(self, t, state, steering=None, acceleration=None, v_log=None):
         self.x.append(state.x)
         self.y.append(state.y)
         self.yaw.append(state.yaw)
         self.v.append(state.v)
         self.t.append(t)
+        if steering is not None:
+            self.steering.append(steering)
+        if acceleration is not None:
+            self.acceleration.append(acceleration)
+        if v_log is not None:
+            self.v_log.append(v_log)
 
+            
 class State:
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, beta=0.0, r=0.0):
         self.x = x

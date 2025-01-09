@@ -378,7 +378,7 @@ class StanleyController:
         steering = theta_e + math.atan2(self.k * e_ct, state.v + self.k_soft)
         steering = normalize_angle(steering)
         steering = np.clip(steering, -conf.MAX_STEER, conf.MAX_STEER)
-        Visualizer.cross_track_error(e_ct,path,cx,cy,theta_e)
+        Visualizer.cross_track_error(abs(e_ct),path,cx,cy,theta_e)
 
         
         return steering, target_ind

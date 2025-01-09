@@ -2,6 +2,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from fsd_path_planning import ConeTypes
+from vehicle_config import Vehicle_config as conf
+# from animation_loop import v_log
 
 class Visualizer:
     @staticmethod
@@ -171,4 +173,47 @@ class Visualizer:
         plt.title('Cross Track Error Over Time')
         plt.grid(True)
         plt.legend()
+        plt.show()
+    @staticmethod
+    def plot_path_deviation(cx, cy, states):
+        plt.figure()
+        plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
+        plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
+        plt.title("Path Deviation")
+        plt.xlabel("X [m]")
+        plt.ylabel("Y [m]")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def plot_speed_profile(states, dt=conf.dt):
+        # Match lengths of states.v and states.v_log
+        min_length = min(len(states.v), len(states.v_log))
+        time = np.arange(0, min_length * dt, dt)
+
+        plt.figure()
+        plt.plot(time, states.v[:min_length], label="Actual Speed [m/s]", color='blue')
+        plt.plot(time, states.v_log[:min_length], label="Target Speed (v_log) [m/s]", linestyle="--", color='red')
+        plt.title("Speed Profile")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Speed [m/s]")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def plot_control_inputs(states, dt=conf.dt):
+        # Match the lengths of all arrays
+        min_length = min(len(states.t), len(states.steering), len(states.acceleration))
+        time = np.arange(0, min_length * dt, dt)
+
+        plt.figure()
+        plt.plot(time, states.steering[:min_length], label="Steering Angle [rad]", color='green')
+        plt.plot(time, states.acceleration[:min_length], label="Acceleration [m/s²]", color='orange')
+        plt.title("Control Inputs Over Time")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Control Input")
+        plt.legend()
+        plt.grid()
         plt.show()
