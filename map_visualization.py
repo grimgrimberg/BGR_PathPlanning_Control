@@ -2,6 +2,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from fsd_path_planning import ConeTypes
+from vehicle_config import Vehicle_config as conf
+# from animation_loop import v_log
 
 class Visualizer:
     @staticmethod
@@ -61,7 +63,6 @@ class Visualizer:
         plt.plot(fl_wheel[0, :], fl_wheel[1, :], truckcolor)
         plt.plot(rl_wheel[0, :], rl_wheel[1, :], truckcolor)
 
-    
     @staticmethod
     def plot_map(cones_by_type):
         """
@@ -69,43 +70,39 @@ class Visualizer:
         """
         cones_left = cones_by_type[ConeTypes.LEFT]
         cones_right = cones_by_type[ConeTypes.RIGHT]
+        orange_big = cones_by_type[ConeTypes.ORANGE_BIG]
+        orange_small = cones_by_type[ConeTypes.ORANGE_SMALL]
         cones_unknown = cones_by_type[ConeTypes.UNKNOWN]
+        
         if len(cones_left) > 0:
-            plt.plot(cones_left[:, 0], cones_left[:, 1], "ob", label="Left Cones",markersize=3)
+            plt.plot(cones_left[:, 0], cones_left[:, 1], "ob", label="Left Cones",markersize=2)
         if len(cones_right) > 0:
-            plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=3)
+            plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=2)
         if len(cones_unknown) > 0:
-            plt.plot(cones_unknown[:, 0], cones_unknown[:, 1], "og", label="Unkonwn Cones",markersize=3)
+            plt.plot(cones_unknown[:, 0], cones_unknown[:, 1], "og", label="Unkonwn Cones",markersize=2)
+        if len(orange_big) > 0:
+            plt.plot(orange_big[:, 0], orange_big[:, 1], color="orange", marker="o", label="orange big",markersize=2)
+        if len(orange_small) > 0:
+            plt.plot(orange_small[:, 0], orange_small[:, 1], color="orange", marker="o", label="orange",markersize=2)
 
     @staticmethod
     def plot_cones(cones_by_type, cones_lidar=[]):
         """
         Plot cones based on their type (left or right).
         """
-
-        cones_left = cones_by_type[ConeTypes.LEFT]
-        cones_right = cones_by_type[ConeTypes.RIGHT]
         
-        if len(cones_left) > 0:
-            plt.plot(cones_left[:, 0], cones_left[:, 1], "ob", label="Left Cones",markersize=3)
-        if len(cones_right) > 0:
-            plt.plot(cones_right[:, 0], cones_right[:, 1], "oy", label="Right Cones",markersize=3)
+        Visualizer.plot_map(cones_by_type)
         if len(cones_lidar) > 0:
-            plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=3)
+            plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=2)
 
     @staticmethod
-    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, referee_map, cones_lidar):
+    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar):
         """
         Draw a single frame of the animation.
         """
         plt.cla()
         plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
         plt.plot(states.x, states.y, "-c", label="Vehicle Path")
-        # plt.title("Path Tracking")
-        # plt.plot(referee_map)
-        # plt.title("Path Tracking")
-
-        # Visualizer.plot_map(referee_map)
         Visualizer.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
         Visualizer.plot_car(state.x, -state.y, -state.yaw, steer=di)
@@ -122,7 +119,7 @@ class Visualizer:
         """
         plt.figure()
         plt.title("Path Tracking")
-        plt.plot(cx, cy, "r--", label="Planned Path")
+        plt.plot(cx, -cy, "r--", label="Planned Path")
         plt.plot(states.x, states.y, "-b", label="Vehicle Path")
         plt.legend()
         plt.xlabel("X [m]")
@@ -171,4 +168,50 @@ class Visualizer:
         plt.title('Cross Track Error Over Time')
         plt.grid(True)
         plt.legend()
+        plt.show()
+        
+    @staticmethod
+    def plot_path_deviation(cx, cy, states,paths):
+        plt.figure()
+        plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
+        plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
+        plt.plot (paths[1:],-paths[2:],label ='planned path',linestyle="-", color="g")
+        plt.title("Path Deviation")
+        plt.xlabel("X [m]")
+        plt.ylabel("Y [m]")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def plot_speed_profile(states, dt=conf.dt):
+        # Match lengths of states.v and states.v_log
+        min_length = min(len(states.v), len(states.v_log))
+        time = np.arange(0, min_length * dt, dt)
+        Target_speed_time = np.full_like(time, conf.TARGET_SPEED)
+        plt.figure()
+        plt.plot(time, states.v[:min_length], label="Actual Speed [m/s]", color='blue')
+        plt.plot(time, states.v_log[:min_length], label="Target Speed (v_log) [m/s]", linestyle="--", color='red')
+        plt.plot(time, Target_speed_time, label="Target Speed (Target Speed) [m/s]", linestyle="dashdot", color='Black',markersize = 5)
+        plt.title("Speed Profile")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Speed [m/s]")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    @staticmethod
+    def plot_control_inputs(states, dt=conf.dt):
+        # Match the lengths of all arrays
+        min_length = min(len(states.t), len(states.steering), len(states.acceleration))
+        time = np.arange(0, min_length * dt, dt)
+
+        plt.figure()
+        plt.plot(time, states.steering[:min_length], label="Steering Angle [rad]", color='green')
+        plt.plot(time, states.acceleration[:min_length], label="Acceleration [m/s²]", color='orange')
+        plt.title("Control Inputs Over Time")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Control Input")
+        plt.legend()
+        plt.grid()
         plt.show()

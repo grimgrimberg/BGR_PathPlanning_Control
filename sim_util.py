@@ -19,6 +19,10 @@ def init_client():
     time.sleep(1)
     client = fsds.FSDSClient()
     client.confirmConnection()
+    try:
+        client.reset()
+    except:
+        pass
     client.enableApiControl(True)
     return client
 
@@ -38,7 +42,7 @@ def pointgroup_to_cone(group):
 def load_cones_from_lidar(client: fsds.FSDSClient):
     cones_range_cutoff = 50 # meters
     # Get the pointcloud
-    lidardata = client.getLidarData(lidar_name = 'Lidar')
+    lidardata = client.getLidarData(lidar_name = 'Lidar')#lidar was from setting.json
 
     # no points
     if len(lidardata.point_cloud) < 3:
@@ -53,9 +57,6 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
     orientation = car_state.kinematics_estimated.orientation
     yaw = (to_eularian_angles(orientation)[2])
 
-    # yaw = normalize_yaw(to_eularian_angles(orientation)[2])
-    # print(to_eularian_angles(orientation))
-    # exit()
     # Go through all the points and find nearby groups of points that are close together as those will probably be cones.
     current_group = []
     cones = []
@@ -66,7 +67,6 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
             # Points closer together then 10 cm are part of the same group
             current_group.append({'x': points[i][0], 'y': points[i][1]})
         else:
-                # cone['y'] *= -1 
                 # points further away indiate a split between groups
                 if len(current_group) > 0:
                     cone = pointgroup_to_cone(current_group)
@@ -81,20 +81,10 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
 
                         if cone not in cones:
                             cones.append(cone)
-
-                # # calculate distance between lidar and cone
-                # if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
-                #     # cone['y'] *= -1 
-                #     if cone not in cones:
-                #         cones.append(cone)
-                # cones.append(cone)
-
                 current_group = []
     
     cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
     cones = [np.array([cone['x'], -1*cone['y']]) for cone in cones]
-    for c in cones:
-        print(c)
     cones_by_type[ConeTypes.UNKNOWN] = np.array(cones) 
 
     logger.info("Cones by type:")
