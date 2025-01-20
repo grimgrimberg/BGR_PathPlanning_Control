@@ -48,8 +48,6 @@ def animation_main_loop(
     curr_time = 0.0
     states = States()
     states.append(curr_time, state)
-    paths = []
-    
     while T >= curr_time and lastIndex > target_ind:
 
         # Update state and target
