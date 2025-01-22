@@ -171,11 +171,46 @@ class Visualizer:
         plt.show()
         
     @staticmethod
-    def plot_path_deviation(cx, cy, states,paths):
+    def plot_path_deviation(cx, cy, states, full_path):
+        x , y = zip(*full_path)
+        x=np.array(x)
+        y=np.array(y)
+        # x , y = full_path[0],full_path[1]
+        # x=full_path[:,1]
+        # y=full_path[:,2]
+        
+        # sorted(x)
+        # print("this is cx ",cx)
+        # print("this is x ",x)
         plt.figure()
         plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
         plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
-        plt.plot (paths[1:],-paths[2:],label ='planned path',linestyle="-", color="g")
+        plt.plot (x,-y,label ='planned path',linestyle="-", color="g", markersize=1)
+        plt.title("Path Deviation")
+        plt.xlabel("X [m]")
+        plt.ylabel("Y [m]")
+        plt.legend()
+        plt.grid()
+        plt.show()
+        
+    def plot_path_deviation1(cx, cy, states, X,Y):
+        # x , y = zip(*full_path)
+        # x , y = full_path[0],full_path[1]
+        # x=full_path[:,1]
+        # y=full_path[:,2]
+        # Y=float(Y)
+        # Y=Y*-1
+        # sorted(x)
+        # print("this is cx ",cx)
+        # print("this is x ",x)
+        # list(set(X))
+        # list(set(Y))
+        # X = np.unique(X, axis=0) 
+        # Y = np.unique(Y, axis=0) 
+        plt.figure()
+        plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
+        plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
+        plt.plot (X,Y,label ='planned path combined',linestyle="-", color="g", markersize=1)
         plt.title("Path Deviation")
         plt.xlabel("X [m]")
         plt.ylabel("Y [m]")
@@ -189,6 +224,10 @@ class Visualizer:
         min_length = min(len(states.v), len(states.v_log))
         time = np.arange(0, min_length * dt, dt)
         Target_speed_time = np.full_like(time, conf.TARGET_SPEED)
+        print(len(states.v[:min_length]))
+        print(len(states.v_log[:min_length]))
+        print(len(Target_speed_time))
+        
         plt.figure()
         plt.plot(time, states.v[:min_length], label="Actual Speed [m/s]", color='blue')
         plt.plot(time, states.v_log[:min_length], label="Target Speed (v_log) [m/s]", linestyle="--", color='red')

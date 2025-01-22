@@ -10,9 +10,10 @@ from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
 from sim_util import load_cones_from_lidar,load_cones_from_referee
 from logger import log_timing
+from scipy.interpolate import splprep, splev
 
 # Simulation parameters
-T = 100.0  # Max simulation time [s]
+T = 10.0  # Max simulation time [s]
 dt = 0.05  # Time step [s]
 Time_zero = time.perf_counter()
 # Visualization settings
@@ -48,20 +49,40 @@ def animation_main_loop(
     curr_time = 0.0
     states = States()
     states.append(curr_time, state)
-    paths = []
     
-    while T >= curr_time and lastIndex > target_ind:
+    full_path = set()
 
+    # Smooth and evenly distribute points
+    # tck, u = splprep([x, y], s=0.5)  # Use B-spline smoothing
+    # u_new = np.linspace(0, 1, 500)  # Generate evenly spaced points
+    # x_smooth, y_smooth = splev(u_new, tck)  # Get smoothed coordinates
+
+    X,Y = [],[]
+    while T >= curr_time and lastIndex > target_ind:
         # Update state and target
         start_time = time.perf_counter()
         state, target_ind, cx, cy, curve, cones_by_type= update_target(
             client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type
         )
         path_track = np.column_stack((np.arange(len(cx)), cx, cy)) #List of XY cords of track
-        paths = path_track
+        print("this is path track ")
+        print(path_track)
+        print("this is x path track ")
+        print(path_track[:2,1])
+        X.append(path_track[:5,1])
+        print(type(X))
+        Y.append(-path_track[:5,2])
+        path_track1 = [X,Y]
+        # path_track.append(path_track)
+        # np.append(path_track,cx,cy)
+        new_points = set(zip(cx, cy))
+        # print(new_points)
+        print(type(new_points))
+        # print(type(new_points[0]))
+        full_path.update(new_points)
         state_update_time = time.perf_counter() - start_time
         print(f"State Update Time: {state_update_time:.4f} seconds")
-        log_timing('timing_log.csv', 'State_Update', state_update_time)
+        log_timing('State_Update', state_update_time)
 
 
 
@@ -117,6 +138,8 @@ def animation_main_loop(
     Visualizer.show(cx, cy, states)  # Existing path visualization
     # New plots
     Visualizer.plot_speed_profile(states)
-    Visualizer.plot_path_deviation(cx, cy, states,paths)
+    Visualizer.plot_path_deviation1(cx, cy, states, X,Y)
+    # Visualizer.plot_path_deviation(cx, cy, states, path_track)
+    # Visualizer.plot_path_deviation(cx, cy, states, full_path)
     Visualizer.plot_control_inputs(states)
     

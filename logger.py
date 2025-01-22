@@ -3,32 +3,16 @@ import logging
 import logging.config
 import csv
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+
+timer = pd.DataFrame(columns=['Section', 'Duration'])
 
 
-
-
-def visualize_timing_data(csv_path='timing_log.csv'):
-    import pandas as pd
-    import matplotlib.pyplot as plt
-
-    # Check if the file exists
-    if not os.path.exists(csv_path):
-        print(f"The file '{csv_path}' does not exist. Creating a new file with headers.")
-        # Create the file with a header row
-        with open(csv_path, 'w') as file:
-            file.write('Section,Duration\n')  # Write header
-        return
-
-    # Load Timing Data
-    data = pd.read_csv(csv_path)
-
-    # Ensure there is data beyond the header
-    if data.shape[0] <= 1:  # If only the header exists
-        print(f"The file '{csv_path}' exists but has no timing data.")
-        return
-
+def visualize_timing_data():
+    global timer
     # Bar Chart
-    avg_durations = data.groupby('Section')['Duration'].mean()
+    avg_durations = timer.groupby('Section')['Duration'].mean()
     avg_durations.plot(kind='bar')
     plt.title('Average Execution Time by Section')
     plt.xlabel('Section')
@@ -77,18 +61,9 @@ def init_logger():
     logger = logging.getLogger('SimLogger')
     logger.info('Logger initialized')
 
-def log_timing(file, section, duration):
-
-    # Check if the file exists
-    if not os.path.exists(file):
-        # Create the file with a header row
-        with open(file, 'w', newline='') as timing_file:
-            writer = csv.writer(timing_file)
-            writer.writerow(['Section', 'Duration'])  # Write the header
-
-    # Append the timing data
-    with open(file, 'a', newline='') as timing_file:
-        writer = csv.writer(timing_file)
-        writer.writerow([section, duration])
-
+def log_timing(section, duration):
+    global timer
+    # Append the new data as a row
+    new_row = {'Section': section, 'Duration': duration}
+    timer = pd.concat([timer, pd.DataFrame([new_row])], ignore_index=True)
 

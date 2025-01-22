@@ -16,7 +16,8 @@ from fsd_path_planning import ConeTypes
 
 from Preformance_analysis.simulation_logger import SimulationLogger
 from map_visualization import Visualizer
-
+from Calibration_loop import calibration_loop
+import argparse
 
 
 
@@ -27,14 +28,31 @@ def main():
     logger = logging.getLogger('SimLogger')
 
     
-
+    # Parse command-line arguments for modes
+    
+    parser = argparse.ArgumentParser(description="Choose simulation or calibration mode.")
+    parser.add_argument("--mode", type=str, default="simulation", choices=["simulation", "calibration"],
+                        help="Select 'simulation' for standard loop or 'calibration' for test data collection.")
+    # python main.py --mode calibration thats what we should run on terminal
+    args = parser.parse_args()
+    
+    
     # Initialize client and path planner
-    start_time = time.perf_counter()
+    # start_time = time.perf_counter()
     client = init_client()
+    if args.mode == "calibration":
+        print("Starting calibration mode...")
+        calibration_loop(client, duration=50, dt=0.05)  # Run the calibration loop
+        return  # Exit after calibration
+    else:
+        print("Starting simulation mode...")
+        
+    start_time = time.perf_counter()
+
     path_planner = PathPlanner(MissionTypes.trackdrive)
     path_init_time = time.perf_counter() - start_time
     print(f"Path Planner Initialization Time: {path_init_time:.4f} seconds")
-    log_timing('timing_log.csv', 'Initialization', path_init_time)
+    log_timing('Initialization', path_init_time)
 
 
 
@@ -44,7 +62,7 @@ def main():
     # lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
     cones_loading_time = time.perf_counter() - start_time
     print(f"Cones Loading Time: {cones_loading_time:.4f} seconds")
-    log_timing('timing_log.csv', 'Cone_loading_initial', cones_loading_time)
+    log_timing('Cone_loading_initial', cones_loading_time)
 
     logger.info("Initial path calculation...")
     # path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
@@ -85,7 +103,7 @@ def main():
     )
     control_loop_time = time.perf_counter() - start_time
     print(f"Control Loop Execution Time: {control_loop_time:.4f} seconds")
-    log_timing('timing_log.csv', 'control_loop', control_loop_time)
+    log_timing('control_loop', control_loop_time)
 
     
 
@@ -94,5 +112,5 @@ def main():
 if __name__ == "__main__":
     main()
     print("ive exitied the main and im going to visualize time")
-    visualize_timing_data('timing_log.csv')
+    visualize_timing_data()
     
