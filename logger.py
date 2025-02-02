@@ -1,42 +1,18 @@
 import time
 import logging
 import logging.config
-
 import csv
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
-def log_timing(file, section, duration):
-    print(f"Logging {section}: {duration}")
-    with open(file, mode='a') as timing_file:
-        writer = csv.writer(timing_file)
-        writer.writerow([section, duration])
+timer = pd.DataFrame(columns=['Section', 'Duration'])
 
-def visualize_timing_data(csv_path='timing_log.csv'):
-    import os
-    import pandas as pd
-    import matplotlib.pyplot as plt
 
-    # Check if the directory exists
-    directory = os.path.dirname(csv_path)
-    if directory and not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
-
-    # Check if the file exists
-    if not os.path.exists(csv_path):
-        # Create the file with a header row
-        with open(csv_path, 'w') as file:
-            file.write('Section,Duration\n')  # Write header for the CSV
-        print(f"File '{csv_path}' created.")
-
-    # Load Timing Data
-    data = pd.read_csv(csv_path)
-
-    # Check if the file contains any data beyond the header
-    if data.empty:
-        print(f"The file '{csv_path}' exists but has no timing data.")
-        return
-
+def visualize_timing_data():
+    global timer
     # Bar Chart
-    avg_durations = data.groupby('Section')['Duration'].mean()
+    avg_durations = timer.groupby('Section')['Duration'].mean()
     avg_durations.plot(kind='bar')
     plt.title('Average Execution Time by Section')
     plt.xlabel('Section')
@@ -46,14 +22,19 @@ def visualize_timing_data(csv_path='timing_log.csv'):
     plt.show()
 
 
+# Create a safe filename for the log file
+def get_safe_log_filename():
+    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")  # Format: YYYY-MM-DD_HH-MM-SS
+    return f'logs/{timestamp}.log'
 
+# Updated logging configuration
 logging_config = {
     'version': 1,
     'handlers': {
         'fileHandler': {
             'class': 'logging.FileHandler',
             'formatter': 'myFormatter',
-            'filename': f'logs/{time.ctime()}.log'
+            'filename': get_safe_log_filename(),  # Use the safe filename function
         }
     },
     'loggers': {
@@ -69,8 +50,20 @@ logging_config = {
     }
 }
 
-
 def init_logger():
+    import os
+
+    # Ensure the logs directory exists
+    os.makedirs("logs", exist_ok=True)
+
+    # Initialize the logger
     logging.config.dictConfig(logging_config)
     logger = logging.getLogger('SimLogger')
-    logger.info('Logger initalized')
+    logger.info('Logger initialized')
+
+def log_timing(section, duration):
+    global timer
+    # Append the new data as a row
+    new_row = {'Section': section, 'Duration': duration}
+    timer = pd.concat([timer, pd.DataFrame([new_row])], ignore_index=True)
+

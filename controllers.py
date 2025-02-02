@@ -535,8 +535,6 @@ def normalize_angle_180(angle):
 def update_path_planner(client, path_planner, car_position, car_direction):
     """Update the path planner and retrieve new path"""
     cones_by_type, car_position, car_direction = load_cones_from_referee(client)
-    # lidar_cones_by_type,car_position, car_direction = load_cons_from_lidar(client)
-    # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
     path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction)
     cx, cy = path[:, 1], -path[:, 2]
     curve = path[:,3]  

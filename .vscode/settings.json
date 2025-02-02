@@ -1,5 +1,9 @@
 {
     "python.analysis.extraPaths": [
         "./ft-fsd-path-planning"
-    ]
+    ],
+    "terminal.integrated.env.linux": {
+        "EDITOR": "code --wait",
+        "GIT_EDITOR": "code --wait"
+      },
 }
