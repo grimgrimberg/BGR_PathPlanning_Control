@@ -193,6 +193,7 @@ class Visualizer:
         plt.grid()
         plt.show()
         
+    @staticmethod
     def plot_path_deviation1(cx, cy, states, X,Y):
         # x , y = zip(*full_path)
         # x , y = full_path[0],full_path[1]
@@ -206,12 +207,43 @@ class Visualizer:
         # list(set(X))
         # list(set(Y))
         # X = np.unique(X, axis=0) 
-        # Y = np.unique(Y, axis=0) 
+        # Y = np.unique(Y, axis=0)
+
+# If X (and similarly Y) is a list of 1D arrays, flatten it:
+        X_flat = np.concatenate(X)
+        Y_flat = np.concatenate(Y)
+        actual_x = np.array(states.x)
+        actual_y = np.array(states.y)
+        # Determine the number of points to compare
+        n_points = min(len(actual_x), len(X_flat))
+
+        # Slice both planned and actual arrays to the same length
+        planned_x_trunc = X_flat[:n_points]
+        planned_y_trunc = Y_flat[:n_points]
+        actual_x_trunc  = actual_x[:n_points]
+        actual_y_trunc  = actual_y[:n_points]
+
+        # Calculate the MSE
+        mse = np.mean((actual_x_trunc - planned_x_trunc)**2 + (actual_y_trunc - planned_y_trunc)**2)
+        rmse = np.sqrt(mse)/100
+        mse = mse/100
+        
+        print("MSE:", mse)
+
+
         plt.figure()
         plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
         plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
-        plt.plot (X,Y,label ='planned path combined',linestyle="-", color="g", markersize=1)
-        plt.title("Path Deviation")
+        # plt.plot (X,Y,label ='planned path combined',linestyle="-", color="g", markersize=1)
+        plt.plot(X_flat, Y_flat, label='planned path combined', linestyle="-", color="g", markersize=1)
+        plt.title(f"Path Deviation (MSE: {mse:.2f})")
+        # plt.text(0.05, 0.95, f"MSE: {mse:.2f}", transform=plt.gca().transAxes,
+        #  fontsize=12, verticalalignment='top')
+        plt.text(0.05, 0.95, f"RMSE: {rmse:.2f}", transform=plt.gca().transAxes,
+         fontsize=12, verticalalignment='top')
+
+
+        # plt.title("Path Deviation")
         plt.xlabel("X [m]")
         plt.ylabel("Y [m]")
         plt.legend()
@@ -254,3 +286,4 @@ class Visualizer:
         plt.legend()
         plt.grid()
         plt.show()
+        

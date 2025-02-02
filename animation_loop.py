@@ -135,11 +135,9 @@ def animation_main_loop(
     if animate:
         Visualizer.show(cx, cy, states)
         Visualizer.plot_cte(dt=dt)
-    Visualizer.show(cx, cy, states)  # Existing path visualization
+    # Visualizer.show(cx, cy, states)  # Existing path visualization
     # New plots
     Visualizer.plot_speed_profile(states)
     Visualizer.plot_path_deviation1(cx, cy, states, X,Y)
-    # Visualizer.plot_path_deviation(cx, cy, states, path_track)
-    # Visualizer.plot_path_deviation(cx, cy, states, full_path)
     Visualizer.plot_control_inputs(states)
     
