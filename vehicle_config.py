@@ -23,7 +23,7 @@ class Vehicle_config():
     # Curvature exponantial decay factor
     k_expo = 0.5      # Sensitivity parameter for exponential decay
     #for stanley
-    k_stanley=1.3
+    k_stanley=0.7
     k_soft_stanley=0.01
 
     # Define limits

@@ -36,7 +36,8 @@ def main():
     # python main.py --mode calibration thats what we should run on terminal
     args = parser.parse_args()
     
-    
+    return_intermediate_results = False
+    experimental_performance_improvements = True #works also at true\False
     # Initialize client and path planner
     # start_time = time.perf_counter()
     client = init_client()
@@ -49,7 +50,7 @@ def main():
         
     start_time = time.perf_counter()
     client = init_client()
-    path_planner = PathPlanner(MissionTypes.trackdrive)
+    path_planner = PathPlanner(MissionTypes.trackdrive,experimental_performance_improvements=True)
     path_init_time = time.perf_counter() - start_time
     print(f"Path Planner Initialization Time: {path_init_time:.4f} seconds")
     log_timing('Initialization', path_init_time)
@@ -58,15 +59,17 @@ def main():
 
     # Load initial cones and car state
     start_time = time.perf_counter()
-    cones_by_type, car_position, car_direction = load_cones_from_referee(client)
-    # lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+    # cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+    lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+    # lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar1(client) #with clipping
+
     cones_loading_time = time.perf_counter() - start_time
     print(f"Cones Loading Time: {cones_loading_time:.4f} seconds")
     log_timing('Cone_loading_initial', cones_loading_time)
 
     logger.info("Initial path calculation...")
-    # path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
-    path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction,return_intermediate_results=False)
+    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction,return_intermediate_results=return_intermediate_results)
+    # path = path_planner.calculate_path_in_global_frame(cones_by_type, car_position, car_direction,return_intermediate_results=False)
 
 
     # Initialize acceleration controller
@@ -96,10 +99,13 @@ def main():
         path=path,
         car_position=car_position,
         car_direction=car_direction,
-        cones_by_type=cones_by_type,
+        cones_by_type=lidar_cones_by_type,
+        # cones_by_type=cones_by_type,
         acceleration_controller=acceleration_controller,
         steering_controller=steering_controller,
-        path_planner=path_planner
+        path_planner=path_planner,
+        return_intermediate_results=return_intermediate_results,
+        experimental_performance_improvements=experimental_performance_improvements
     )
     control_loop_time = time.perf_counter() - start_time
     print(f"Control Loop Execution Time: {control_loop_time:.4f} seconds")

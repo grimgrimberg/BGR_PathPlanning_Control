@@ -8,6 +8,7 @@ import fsds # local directory
 from fsds.utils import to_eularian_angles
 import math
 from fsd_path_planning import ConeTypes
+from map_visualization import Visualizer
 
 # Initialize logger
 logger = logging.getLogger('SimLogger')
@@ -39,8 +40,8 @@ def pointgroup_to_cone(group):
     average_y = average_y / len(group)
     return {'x': average_x, 'y': average_y}
 
-def load_cones_from_lidar(client: fsds.FSDSClient):
-    cones_range_cutoff = 50 # meters
+def load_cones_from_lidar(client: fsds.FSDSClient): #Old version, without clipping
+    cones_range_cutoff = 30 # meters
     # Get the pointcloud
     lidardata = client.getLidarData(lidar_name = 'Lidar')#lidar was from setting.json
 
@@ -51,6 +52,9 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
     # Convert the list of floats into a list of xyz coordinates
     points = np.array(lidardata.point_cloud, dtype=np.dtype('f4'))
     points = np.reshape(points, (int(points.shape[0]/3), 3))
+    # Visualizer.plot_point_cloud(points, title="Raw Lidar Point Cloud")
+    
+
 
     car_position, car_direction = get_car_orientation(client)
     car_state = client.getCarState()
@@ -64,6 +68,7 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
         # Get the distance from current to previous point
         distance_to_last_point = distance(points[i][0], points[i][1], points[i-1][0], points[i-1][1])
         if distance_to_last_point < 0.1:
+        # if (distance_to_last_point < 0.6 and distance_to_last_point>4.5):
             # Points closer together then 10 cm are part of the same group
             current_group.append({'x': points[i][0], 'y': points[i][1]})
         else:
@@ -71,20 +76,22 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
                 if len(current_group) > 0:
                     cone = pointgroup_to_cone(current_group)
                     if distance(0, 0, cone['x'], cone['y']) < cones_range_cutoff:
-                        old_x,old_y = cone['x'],-cone['y']
+                        old_x,old_y = cone['x']+1.3,-cone['y'] #old x is the position of the lidar to the center of the car, same as old Y
                         cone['x'] = np.cos(-yaw) * old_x - np.sin(-yaw) * old_y
                         cone['y'] = np.sin(-yaw) * old_x + np.cos(-yaw) * old_y
+                        # cone['x'] = np.cos(yaw) * old_x + np.sin(yaw) * old_y
+                        # cone['y'] = np.sin(yaw) * old_x - np.cos(yaw) * old_y
                         cone['x'] += car_position[0]
                         cone['y'] += car_position[1]
                         cone['x'] = cone['x']
-                        cone['y'] = -cone['y']
+                        cone['y'] = cone['y']
 
                         if cone not in cones:
                             cones.append(cone)
                 current_group = []
     
     cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
-    cones = [np.array([cone['x'], -1*cone['y']]) for cone in cones]
+    cones = [np.array([cone['x'], cone['y']]) for cone in cones]
     cones_by_type[ConeTypes.UNKNOWN] = np.array(cones) 
 
     logger.info("Cones by type:")
@@ -93,6 +100,66 @@ def load_cones_from_lidar(client: fsds.FSDSClient):
 
     logger.info(f"Car position: {car_position}")
     logger.info(f"Car direction: {car_direction}")
+    
+    # Visualizer.plot_point_cloud(points, title="Raw Lidar Point Cloud")
+
+    return cones_by_type, car_position, car_direction
+
+def load_cones_from_lidar1(client: fsds.FSDSClient):
+    min_cone_distance = 3.5  # Minimum distance threshold [m]
+    max_cone_distance = 15  # Maximum distance threshold [m]
+
+    # Retrieve LiDAR data from the simulator
+    lidardata = client.getLidarData(lidar_name='Lidar')
+
+    # Check if sufficient points are available
+    if len(lidardata.point_cloud) < 3:
+        return None, None, None
+
+    # Convert LiDAR data into a numpy array of xyz points
+    points = np.array(lidardata.point_cloud, dtype=np.float32).reshape(-1, 3)
+
+    # Compute distances from the LiDAR origin to each point
+    distances = np.linalg.norm(points[:, :2], axis=1)
+
+    # Filter points based on the specified range limits
+    valid_indices = np.logical_and(distances >= min_cone_distance, distances <= max_cone_distance)
+    points = points[valid_indices]
+
+    # Obtain car's orientation and position
+    car_position, car_direction = get_car_orientation(client)
+    car_state = client.getCarState()
+    orientation = car_state.kinematics_estimated.orientation
+    yaw = to_eularian_angles(orientation)[2]
+
+    # Group points to identify cones
+    current_group, cones = [], []
+    for i in range(1, len(points)):
+        distance_to_last_point = distance(points[i][0], points[i][1], points[i-1][0], points[i-1][1])
+        
+        if distance_to_last_point < 0.1:
+            current_group.append({'x': points[i][0], 'y': points[i][1]})
+        else:
+            if current_group:
+                cone = pointgroup_to_cone(current_group)
+
+                old_x, old_y = cone['x'] + 1.3, -cone['y']  # Adjust for LiDAR position relative to the car center
+                # Rotate points to global reference frame
+                cone['x'] = np.cos(-yaw) * old_x - np.sin(-yaw) * old_y + car_position[0]
+                cone['y'] = np.sin(-yaw) * old_x + np.cos(-yaw) * old_y + car_position[1]
+
+                cones.append(np.array([cone['x'], cone['y']]))
+            current_group = []
+
+    cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
+    cones_by_type[ConeTypes.UNKNOWN] = np.array(cones)
+
+    logger.info("Cones by type:")
+    for i, cone_group in enumerate(cones_by_type):
+        logger.info(f"Type {i}: {len(cone_group)} cones")
+    print("plots ocklock")
+    Visualizer.plot_point_cloud(points, title="Filtered Lidar Point Cloud")
+
     return cones_by_type, car_position, car_direction
     
 
@@ -155,7 +222,11 @@ def sim_car_state(client):
     x = car_state.kinematics_estimated.position.x_val
     y = car_state.kinematics_estimated.position.y_val
     yaw = normalize_yaw(yaw)
-    return x, y, yaw, car_state.speed
+    v_linear = car_state.kinematics_estimated.linear_velocity
+    v_angular = car_state.kinematics_estimated.angular_velocity
+    a_linear = car_state.kinematics_estimated.linear_acceleration
+    a_angular = car_state.kinematics_estimated.angular_acceleration
+    return x, y, yaw, car_state.speed,v_linear,v_angular,a_linear,a_angular
 
 # Set car controls in simulator
 def sim_car_controls(client, di, ai):

@@ -4,7 +4,7 @@ import numpy as np
 import math
 import cvxpy as cp  # For MPC
 from simple_pid import PID
-from sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar
+from sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar,load_cones_from_lidar1
 from vehicle_config import Vehicle_config as conf
 import control as ctrl
 from fsd_path_planning import ConeTypes
@@ -229,7 +229,7 @@ class PurePursuitController:
         return steering, ind
  
 # Stanley Controller
-class StanleyController:
+class StanleyController: #old
     def __init__(self, k=conf.k_stanley, k_soft=conf.k_soft_stanley, max_steer_rate=np.deg2rad(30), alpha=0.5, lookahead_distance=0.0):
         """
         Improved Stanley Steering Controller.
@@ -382,6 +382,90 @@ class StanleyController:
 
         
         return steering, target_ind
+
+# class StanleyController: #new controller
+#     def __init__(self, k=conf.k_stanley, k_soft=conf.k_soft_stanley, 
+#                  max_steer_rate=np.deg2rad(30), alpha=0.5, lookahead_distance=0.0):
+#         """
+#         Stanley Steering Controller with smoothing and steering rate limits.
+
+#         Args:
+#             k (float): Gain for the cross-track error.
+#             k_soft (float): Softening constant to avoid division by zero.
+#             max_steer_rate (float): Maximum steering angle change rate [rad/s].
+#             alpha (float): Low-pass filtering factor (0 < alpha <= 1).
+#             lookahead_distance (float): Optional look-ahead distance [m].
+#         """
+#         self.k = k
+#         self.k_soft = k_soft
+#         self.max_steer_rate = max_steer_rate
+#         self.alpha = alpha
+#         self.lookahead_distance = lookahead_distance
+#         self.previous_steering = 0.0  # Initialize previous steering angle
+
+#     def compute_steering(self, state, path, target_ind, dt):
+#         """
+#         Compute steering angle using the Stanley control algorithm.
+
+#         Args:
+#             state (State): Current state of the vehicle.
+#             path (numpy.ndarray): Path coordinates.
+#             target_ind (int): Current target index on the path.
+#             dt (float): Time step [s].
+
+#         Returns:
+#             float: Steering angle [rad].
+#             int: Updated target index.
+#         """
+#         cx = path[:, 1]
+#         cy = path[:, 2]
+
+#         # Find nearest path point
+#         distances = np.hypot(cx - state.x, cy - state.y)
+#         target_ind = np.argmin(distances)
+#         nearest_x = cx[target_ind]
+#         nearest_y = cy[target_ind]
+
+#         # Path heading calculation
+#         if target_ind < len(cx) - 1:
+#             path_dx = cx[target_ind + 1] - cx[target_ind]
+#             path_dy = cy[target_ind + 1] - cy[target_ind]
+#         else:
+#             path_dx = cx[target_ind] - cx[target_ind - 1]
+#             path_dy = cy[target_ind] - cy[target_ind - 1]
+
+#         path_yaw = math.atan2(path_dy, path_dx)
+
+#         # Compute errors
+#         heading_error = normalize_angle(path_yaw - state.yaw)
+#         cross_track_error = (nearest_y - state.y) * math.cos(path_yaw) - (nearest_x - state.x) * math.sin(path_yaw)
+
+#         # Adaptive gain scheduling based on velocity
+#         adaptive_k = self.k / (state.v + self.k_soft)
+
+#         # Raw steering command
+#         raw_steering = heading_error + math.atan2(adaptive_k * cross_track_error, 1.0)
+
+#         # Rate limit steering command
+#         max_delta = self.max_steer_rate * dt
+#         # max_delta = self.max_steer_rate
+#         limited_steering = np.clip(raw_steering,
+#                                    self.previous_steering - max_delta,
+#                                    self.previous_steering + max_delta)
+
+#         # Low-pass filter steering command
+#         filtered_steering = self.alpha * limited_steering + (1 - self.alpha) * self.previous_steering
+
+#         # Update previous steering
+#         self.previous_steering = filtered_steering
+
+#         # Final steering command clipped to max steer angle
+#         steering = np.clip(filtered_steering, -conf.MAX_STEER, conf.MAX_STEER)
+
+#         Visualizer.cross_track_error(cross_track_error, path, cx, cy, heading_error)
+
+#         return steering, target_ind
+
 
 class MPCController:
     def __init__(self, N=10, dt=0.1):
@@ -540,26 +624,34 @@ def update_path_planner(client, path_planner, car_position, car_direction):
     curve = path[:,3]  
     return cx, cy, curve, cones_by_type
 
-def update_path_planner_lidar(client, path_planner, car_position, car_direction):
+def update_path_planner_lidar(client, path_planner, car_position, car_direction,return_intermediate_results):
     """Update the path planner and retrieve new path"""
     # cones_by_type, car_position, car_direction = load_cones_from_referee(client)
-    lidar_cones_by_type,car_position, car_direction = load_cones_from_lidar(client)
+    # lidar_cones_by_type,car_position, car_direction = load_cones_from_lidar(client) #unclipped
+    lidar_cones_by_type,car_position, car_direction = load_cones_from_lidar1(client) #clipped
+
     # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
-    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction)
-    cx, cy = path[:, 1], -path[:, 2]
-    curve = path[:,3]  
+    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction,return_intermediate_results)
+    return_intermediate_results = return_intermediate_results
+    if return_intermediate_results:
+        cx, cy = path[0][:, 1], path[0][:, 2]
+        curve = path[0][:, 3]
+    else:    
+        cx, cy = path[:, 1], -path[:, 2]
+        curve = path[:,3]  
     return cx, cy, curve, lidar_cones_by_type
 
 
-def update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type):
+def update_target(client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type,return_intermediate_results):
     cones_by_type = cones_by_type
+    # if target_ind > 3:
     if target_ind > 3:
         # first line is by referee global map
-        cx, cy, curve, cones_by_type = update_path_planner(client, path_planner, car_position, car_direction)
-        # cx, cy, curve, cones_by_type = update_path_planner_lidar(client, path_planner, car_position, car_direction)
+        # cx, cy, curve, cones_by_type = update_path_planner(client, path_planner, car_position, car_direction)
+        cx, cy, curve, cones_by_type = update_path_planner_lidar(client, path_planner, car_position, car_direction,return_intermediate_results)
         target_ind = 0
-    x, y, yaw, speed = sim_car_state(client)
+    x, y, yaw, speed,v_linear,v_angular,a_linear,a_angular = sim_car_state(client)
     state.x, state.y, state.yaw, state.v = x, y, yaw, speed
     target_ind = find_target_point(state, cx, cy, target_ind)
     
-    return state, target_ind, cx, cy, curve, cones_by_type
+    return state, target_ind, cx, cy, curve, cones_by_type,v_linear,v_angular,a_linear,a_angular

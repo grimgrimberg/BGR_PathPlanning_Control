@@ -17,6 +17,49 @@ from vehicle_config import Vehicle_config as conf
 #         self.v.append(state.v)
 #         self.t.append(t)
 
+# class States:
+#     def __init__(self):
+#         self.x = []
+#         self.y = []
+#         self.yaw = []
+#         self.v = []
+#         self.t = []
+#         self.steering = []  # Add for steering data
+#         self.acceleration = []  # Add for acceleration data
+#         self.v_log = []
+#         self.v_linear = []
+#         self.v_angular = []
+#         self.a_linear = []
+#         self.a_angular = []
+
+#     # def append(self, t, state, steering=None, acceleration=None):
+#     #     self.x.append(state.x)
+#     #     self.y.append(state.y)
+#     #     self.yaw.append(state.yaw)
+#     #     self.v.append(state.v)
+#     #     self.t.append(t)
+#     #     if steering is not None:
+#     #         self.steering.append(steering)
+#     #     if acceleration is not None:
+#     #         self.acceleration.append(acceleration)
+#     def append(self, t, state, steering=None, acceleration=None, v_log=None,v_linear = None, v_angular= None, a_linear= None, a_angular= None):
+#         self.x.append(state.x)
+#         self.y.append(state.y)
+#         self.yaw.append(state.yaw)
+#         self.v.append(state.v)
+#         self.t.append(t)
+#         # v_linear,v_angular,a_linear,a_angular
+#         self.v_linear.append(state.v_linear)
+#         self.v_angular.append(state.v_angular)
+#         self.a_angular.append(state.a_angular)
+#         self.a_linear.append(state.a_linear)
+#         if steering is not None:
+#             self.steering.append(steering)
+#         if acceleration is not None:
+#             self.acceleration.append(acceleration)
+#         if v_log is not None:
+#             self.v_log.append(v_log)
+
 class States:
     def __init__(self):
         self.x = []
@@ -24,36 +67,39 @@ class States:
         self.yaw = []
         self.v = []
         self.t = []
-        self.steering = []  # Add for steering data
-        self.acceleration = []  # Add for acceleration data
+        self.steering = []
+        self.acceleration = []
         self.v_log = []
+        self.v_linear = []
+        self.v_angular = []
+        # Explicitly separate longitudinal and lateral acceleration:
+        self.a_longitudinal = []  # explicitly longitudinal (x-axis)
+        self.a_lateral = []       # explicitly lateral (y-axis)
 
-    # def append(self, t, state, steering=None, acceleration=None):
-    #     self.x.append(state.x)
-    #     self.y.append(state.y)
-    #     self.yaw.append(state.yaw)
-    #     self.v.append(state.v)
-    #     self.t.append(t)
-    #     if steering is not None:
-    #         self.steering.append(steering)
-    #     if acceleration is not None:
-    #         self.acceleration.append(acceleration)
-    def append(self, t, state, steering=None, acceleration=None, v_log=None):
+    def append(self, t, state, steering=None, acceleration=None, v_log=None, 
+               v_linear=None, v_angular=None, a_linear=None, a_angular=None):
         self.x.append(state.x)
         self.y.append(state.y)
         self.yaw.append(state.yaw)
         self.v.append(state.v)
         self.t.append(t)
+
+        self.v_linear.append(v_linear)
+        self.v_angular.append(v_angular)
+
+        # Explicitly store components from Vector3r (linear acceleration):
+        self.a_longitudinal.append(a_linear.x_val if a_linear else 0)
+        self.a_lateral.append(a_linear.y_val if a_linear else 0)
+
         if steering is not None:
             self.steering.append(steering)
         if acceleration is not None:
             self.acceleration.append(acceleration)
         if v_log is not None:
             self.v_log.append(v_log)
-
             
 class State:
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, beta=0.0, r=0.0):
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, beta=0.0, r=0.0,v_linear=0,v_angular=0,a_angular=0,a_linear=0):
         self.x = x
         self.y = y
         self.yaw = yaw  # Vehicle heading
@@ -61,6 +107,10 @@ class State:
         self.beta = beta  # Slip angle
         self.r = r  # Yaw rate
         self.update_positions()
+        self.v_linear=v_linear
+        self.v_angular=v_angular
+        self.a_angular=a_angular
+        self.a_linear=a_linear
 
     def update(self, a, delta):
         # Dynamic bicycle model integration step

@@ -28,14 +28,23 @@ def animation_main_loop(
     cones_by_type,
     acceleration_controller,
     steering_controller,
-    path_planner
+    path_planner,
+    return_intermediate_results,
+    experimental_performance_improvements
 ):
     logger.info("Starting animation main loop")
-
-    cx, cy = path[:, 1], path[:, 2]
-    curve = path[:, 3]
-    target_ind = 0
-    lastIndex = len(cx) - 1
+    print(path[0])
+    if return_intermediate_results:
+        cx, cy = path[0][:, 1], path[0][:, 2]
+        curve = path[0][:, 3]
+        target_ind = 0
+        lastIndex = len(cx) - 1
+        print("this is cx", cx)
+    else:
+        cx, cy = path[:, 1], path[:, 2]
+        curve = path[:, 3]
+        target_ind = 0
+        lastIndex = len(cx) - 1
 
     # Initial state
     state = State(
@@ -50,7 +59,7 @@ def animation_main_loop(
     states = States()
     states.append(curr_time, state)
     Time_end = 0
-    path_planner = PathPlanner(MissionTypes.trackdrive)
+    path_planner = PathPlanner(MissionTypes.trackdrive,experimental_performance_improvements=experimental_performance_improvements)
     
     full_path = set()
 
@@ -62,14 +71,15 @@ def animation_main_loop(
     while T >= curr_time and lastIndex > target_ind:
         # Update state and target
         start_time = time.perf_counter()
-        state, target_ind, cx, cy, curve, cones_by_type= update_target(
-            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type
+        state, target_ind, cx, cy, curve, cones_by_type,v_linear,v_angular,a_linear,a_angular= update_target(
+            client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type,return_intermediate_results
         )
         path_track = np.column_stack((np.arange(len(cx)), cx, cy)) #List of XY cords of track
-        print("this is path track ")
-        print(path_track)
-        print("this is x path track ")
-        print(path_track[:2,1])
+        # print("this is path track ")
+        print("this is a_angular",a_angular)
+        # print(path_track)
+        # print("this is x path track ")
+        # print(path_track[:2,1])
         X.append(path_track[:5,1])
         print(type(X))
         Y.append(-path_track[:5,2])
@@ -91,6 +101,8 @@ def animation_main_loop(
         if hasattr(steering_controller, 'compute_steering'):
             # Compute steering angle
             steering_angle, target_ind = steering_controller.compute_steering(state, path_track, target_ind)
+            # steering_angle, target_ind = steering_controller.compute_steering(state, path_track, target_ind,dt) #version with dt is for new stanley
+
             #compute accelaation using pid
             if isinstance(acceleration_controller,AccelerationPIDController): 
                 curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
@@ -112,26 +124,55 @@ def animation_main_loop(
             raise ValueError("Invalid steering controller type")
 
         # Send control commands to the simulator
-        sim_car_controls(client, -steering_angle, acceleration)
+        # sim_car_controls(client, -steering_angle, acceleration) #Defult running
+        sim_car_controls(client, -steering_angle, 0)#stanting still for testing
 
         curr_time += dt
-        state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
+        # state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
+        state_modifier = State(
+        x=state.x, 
+        y=-state.y, 
+        yaw=state.yaw, 
+        v=state.v,
+        v_linear=v_linear,             # from your returned variables
+        v_angular=v_angular,           
+        a_linear=a_linear.x_val,       # extracting from Vector3r
+        a_angular=a_angular.z_val      # extracting from Vector3r
+    )
+
+        # states.append(
+        #     curr_time,
+        #     state_modifier,
+        #     steering_angle if steering_angle else 0.0,         # steering
+        #     acceleration if acceleration else 0.0,             # acceleration
+        #     v_log if v_log else 0.0,                             # v_log
+        #     v_linear,                                          # v_linear
+        #     v_angular,                                         # v_angular
+        #     a_linear,                                          # a_linear
+        #     a_angular                                          # a_angular
+
+        # )
         states.append(
-            curr_time,
-            state_modifier,
-            steering=steering_angle if steering_angle else 0.0,  # Default to 0.0 if undefined
-            acceleration=acceleration if acceleration else 0.0,  # Default to 0.0 if undefined
-            v_log=v_log if v_log else 0.0  # Default to 0.0 if undefined
-        )
+        curr_time,
+        state_modifier,
+        steering_angle if steering_angle else 0.0,
+        acceleration if acceleration else 0.0,
+        v_log if v_log else 0.0,
+        v_linear=v_linear,
+        v_angular=v_angular,
+        a_linear=a_linear,
+        a_angular=a_angular
+    )
 
         if animate:
-            lidar_cones_by_type, _, _ = load_cones_from_lidar(client)
-            cones_by_type, car_position, car_direction = load_cones_from_referee(client)
+            lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+            cones_by_type, _, _ = load_cones_from_referee(client)
             if lidar_cones_by_type:
                 cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
             else:
                 cones_lidar = cones_by_type
             Visualizer.draw_frame(cx, cy, states, cones_by_type, target_ind, state, steering_angle, v_log, cones_lidar)
+            
 
     if animate:
         Visualizer.show(cx, cy, states)
@@ -139,6 +180,14 @@ def animation_main_loop(
     # Visualizer.show(cx, cy, states)  # Existing path visualization
     # New plots
     Visualizer.plot_speed_profile(states)
-    Visualizer.plot_path_deviation1(cx, cy, states, X,Y)
+    Visualizer.plot_path_deviation1(cx, cy, states, X,Y,cones_by_type,cones_lidar)
     Visualizer.plot_control_inputs(states)
+    # Visualizer.plot_acceleration(a_linear,a_angular,dt)
+    # Visualizer.plot_acceleration(States,dt)
+    # Visualizer.plot_acceleration(states, dt)
+    Visualizer.plot_gg(states, dt)
+    Visualizer.plot_all_accelerations(states, dt)
+
+
+
     
