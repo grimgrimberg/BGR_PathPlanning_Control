@@ -83,8 +83,8 @@ def main():
 
 
     # Select steering controller by name
-    # steering_controller_name = 'pure_pursuit'  # Options: 'pure_pursuit', 'stanley','mpc'
-    steering_controller_name = 'stanley'  # Options: 'pure_pursuit', 'stanley', 'mpc'
+    steering_controller_name = 'pure_pursuit'  # Options: 'pure_pursuit', 'stanley','mpc'
+    # steering_controller_name = 'stanley'  # Options: 'pure_pursuit', 'stanley', 'mpc'
     # steering_controller_nme = 'mpc'  # Options: 'pure_pursuit', 'stanley', 'mpc'
 
     steering_controller = get_steering_controller(name=steering_controller_name)

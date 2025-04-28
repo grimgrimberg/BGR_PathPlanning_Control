@@ -106,8 +106,8 @@ def load_cones_from_lidar(client: fsds.FSDSClient): #Old version, without clippi
     return cones_by_type, car_position, car_direction
 
 def load_cones_from_lidar1(client: fsds.FSDSClient):
-    min_cone_distance = 3.5  # Minimum distance threshold [m]
-    max_cone_distance = 15  # Maximum distance threshold [m]
+    min_cone_distance = 0 # Minimum distance threshold [m]
+    max_cone_distance = 40 # Maximum distance threshold [m]
 
     # Retrieve LiDAR data from the simulator
     lidardata = client.getLidarData(lidar_name='Lidar')
@@ -152,13 +152,14 @@ def load_cones_from_lidar1(client: fsds.FSDSClient):
             current_group = []
 
     cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
+    print(f"lidar detect: {np.array(cones).shape}")
     cones_by_type[ConeTypes.UNKNOWN] = np.array(cones)
 
     logger.info("Cones by type:")
     for i, cone_group in enumerate(cones_by_type):
         logger.info(f"Type {i}: {len(cone_group)} cones")
     print("plots ocklock")
-    Visualizer.plot_point_cloud(points, title="Filtered Lidar Point Cloud")
+    Visualizer.plot_cones(cones_by_type)
 
     return cones_by_type, car_position, car_direction
     
@@ -226,7 +227,9 @@ def sim_car_state(client):
     v_angular = car_state.kinematics_estimated.angular_velocity
     a_linear = car_state.kinematics_estimated.linear_acceleration
     a_angular = car_state.kinematics_estimated.angular_acceleration
-    return x, y, yaw, car_state.speed,v_linear,v_angular,a_linear,a_angular
+    logger.info(f"car_state: {car_state}")
+    v = car_state.speed if car_state.speed > 0 else 0
+    return x, y, yaw, v, v_linear,v_angular,a_linear,a_angular
 
 # Set car controls in simulator
 def sim_car_controls(client, di, ai):

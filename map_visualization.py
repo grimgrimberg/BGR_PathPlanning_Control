@@ -94,8 +94,15 @@ class Visualizer:
         """
         
         Visualizer.plot_map(cones_by_type)
-        if len(cones_lidar) > 0:
+        if len(cones_lidar) > 0 and isinstance(cones_lidar, np.ndarray):
             plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=2,)
+             
+    @staticmethod
+    def plot_route(path):
+        cx, cy = path[:, 1], path[:, 2]
+        plt.figure()
+        plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
+        plt.show()
 
     @staticmethod
     def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar):

@@ -2,6 +2,7 @@
 
 import numpy as np
 import math
+import logging
 import cvxpy as cp  # For MPC
 from simple_pid import PID
 from sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar,load_cones_from_lidar1
@@ -12,7 +13,7 @@ from map_visualization import Visualizer
 
 # Constants for normalization
 MAX_STEER_ANGLE = conf.MAX_STEER  # Maximum steering angle in radians
-
+logger = logging.getLogger('SimLogger')
 # PID Controller for Acceleration
 class AccelerationPIDController:
     def __init__(self, kp, ki, kd, setpoint):
@@ -43,6 +44,7 @@ class AccelerationPIDController:
         self.pid.setpoint = self.maxspeed
         acceleration = self.pid(current_speed)
         acceleration = np.clip(acceleration, conf.MAX_DECEL, conf.MAX_ACCEL)
+        logger.info(f"Current Speed: {current_speed}, Desired Speed: {desired_v}, Acceleration: {acceleration}")
         return acceleration
     
     def compute_breaking_old(self, curve, target_ind):
@@ -69,6 +71,8 @@ class AccelerationPIDController:
         
         max_speed = conf.TARGET_SPEED  # Maximum desired speed
         v_desired = max_speed * np.exp(-a * np.abs(curvature))
+        
+        logger.info(f"Curvature: {curvature}, Desired Speed: {v_desired}")
         return v_desired
 
     def _update_desired_speed(self, velocity):
@@ -624,14 +628,52 @@ def update_path_planner(client, path_planner, car_position, car_direction):
     curve = path[:,3]  
     return cx, cy, curve, cones_by_type
 
-def update_path_planner_lidar(client, path_planner, car_position, car_direction,return_intermediate_results):
+def update_path_planner_lidar(client, path_planner, car_position, car_direction, return_intermediate_results):
+    import matplotlib.pyplot as plt
+    blue_color = "#7CB9E8"
+    yellow_color = "gold"
+    # define plt
+    # plt.figure(figsize=(10, 10))
+
     """Update the path planner and retrieve new path"""
     # cones_by_type, car_position, car_direction = load_cones_from_referee(client)
     # lidar_cones_by_type,car_position, car_direction = load_cones_from_lidar(client) #unclipped
     lidar_cones_by_type,car_position, car_direction = load_cones_from_lidar1(client) #clipped
 
-    # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
-    path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction,return_intermediate_results)
+    # # cones_by_type[ConeTypes.UNKNOWN] = lidar_cones_by_type[ConeTypes.UNKNOWN]
+    # path = path_planner.calculate_path_in_global_frame(lidar_cones_by_type, car_position, car_direction, return_intermediate_results)
+    out = path_planner.calculate_path_in_global_frame(
+        lidar_cones_by_type, car_position, car_direction, return_intermediate_results=True
+    )
+
+    (
+        path,
+        sorted_left,
+        sorted_right,
+        left_cones_with_virtual,
+        right_cones_with_virtual,
+        left_to_right_match,
+        right_to_left_match,
+    ) = out
+        
+    # all_cones = np.row_stack([cones_left, cones_right, cones_unknown])
+
+
+    # plt.plot(*all_cones.T, "o", c="k")
+    # plt.plot(*sorted_left.T, "o-", c=blue_color)
+    # plt.plot(*sorted_right.T, "o-", c=yellow_color)
+    # plt.title("Sorted cones")
+    # plt.axis("equal")
+    # plt.show(block=True)
+
+    # plt.plot(*all_cones.T, "o", c="k")
+
+  
+    
+    
+    # print("this is path",path)
+    # Visualizer.plot_route(path)
+    # # input()
     return_intermediate_results = return_intermediate_results
     if return_intermediate_results:
         cx, cy = path[0][:, 1], path[0][:, 2]

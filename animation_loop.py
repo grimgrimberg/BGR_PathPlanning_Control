@@ -8,12 +8,12 @@ from sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
-from sim_util import load_cones_from_lidar,load_cones_from_referee
+from sim_util import load_cones_from_lidar,load_cones_from_referee,load_cones_from_lidar1
 from logger import log_timing
 from scipy.interpolate import splprep, splev
 
 # Simulation parameters
-T = 10.0  # Max simulation time [s]
+T = 20.0  # Max simulation time [s]
 dt = 0.05  # Time step [s]
 Time_zero = time.perf_counter()
 # Visualization settings
@@ -124,8 +124,8 @@ def animation_main_loop(
             raise ValueError("Invalid steering controller type")
 
         # Send control commands to the simulator
-        # sim_car_controls(client, -steering_angle, acceleration) #Defult running
-        sim_car_controls(client, -steering_angle, 0)#stanting still for testing
+        sim_car_controls(client, -steering_angle, acceleration) #Defult running
+        # sim_car_controls(client, -steering_angle, 0)#stanting still for testing
 
         curr_time += dt
         # state_modifier = State(x=state.x, y=-state.y, yaw=state.yaw, v=state.v)
@@ -165,7 +165,7 @@ def animation_main_loop(
     )
 
         if animate:
-            lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar(client)
+            lidar_cones_by_type, car_position, car_direction = load_cones_from_lidar1(client)
             cones_by_type, _, _ = load_cones_from_referee(client)
             if lidar_cones_by_type:
                 cones_lidar = lidar_cones_by_type[ConeTypes.UNKNOWN]
