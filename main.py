@@ -3,7 +3,7 @@ import time
 import logging
 from logger import init_logger,visualize_timing_data,log_timing
 from fsd_path_planning import PathPlanner, MissionTypes
-from sim_util import init_client, load_cones_from_referee, load_cones_from_lidar
+from providers.sim.sim_util import init_client, load_cones_from_referee, load_cones_from_lidar
 from vehicle_config import Vehicle_config as conf
 from animation_loop import animation_main_loop
 from controllers import (

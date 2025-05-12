@@ -4,17 +4,17 @@ import logging
 import numpy as np
 from fsd_path_planning import PathPlanner, MissionTypes, ConeTypes
 from map_visualization import Visualizer
-from sim_util import sim_car_controls
+from providers.sim.sim_util import sim_car_controls
 from vehicle_config import Vehicle_config as conf
 from car_state import State, States
 from controllers import update_target, AccelerationPIDController, LQGAccelerationController
-from sim_util import load_cones_from_lidar,load_cones_from_referee,load_cones_from_lidar1
+from providers.sim.sim_util import load_cones_from_lidar,load_cones_from_referee,load_cones_from_lidar1
 from logger import log_timing
 from scipy.interpolate import splprep, splev
 
 # Simulation parameters
-T = 20.0  # Max simulation time [s]
-dt = 0.05  # Time step [s]
+T = 200.0  # Max simulation time [s]
+dt = 0.1  # Time step [s]
 Time_zero = time.perf_counter()
 # Visualization settings
 animate = True
@@ -75,21 +75,9 @@ def animation_main_loop(
             client, cx, cy, path_planner, car_position, car_direction, state, target_ind, curve, cones_by_type,return_intermediate_results
         )
         path_track = np.column_stack((np.arange(len(cx)), cx, cy)) #List of XY cords of track
-        # print("this is path track ")
-        print("this is a_angular",a_angular)
-        # print(path_track)
-        # print("this is x path track ")
-        # print(path_track[:2,1])
         X.append(path_track[:5,1])
-        print(type(X))
         Y.append(-path_track[:5,2])
-        path_track1 = [X,Y]
-        # path_track.append(path_track)
-        # np.append(path_track,cx,cy)
         new_points = set(zip(cx, cy))
-        # print(new_points)
-        print(type(new_points))
-        # print(type(new_points[0]))
         full_path.update(new_points)
         state_update_time = time.perf_counter() - start_time
         print(f"State Update Time: {state_update_time:.4f} seconds")

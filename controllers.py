@@ -5,7 +5,7 @@ import math
 import logging
 import cvxpy as cp  # For MPC
 from simple_pid import PID
-from sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar,load_cones_from_lidar1
+from providers.sim.sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar,load_cones_from_lidar1
 from vehicle_config import Vehicle_config as conf
 import control as ctrl
 from fsd_path_planning import ConeTypes
@@ -629,9 +629,9 @@ def update_path_planner(client, path_planner, car_position, car_direction):
     return cx, cy, curve, cones_by_type
 
 def update_path_planner_lidar(client, path_planner, car_position, car_direction, return_intermediate_results):
-    import matplotlib.pyplot as plt
-    blue_color = "#7CB9E8"
-    yellow_color = "gold"
+    # import matplotlib.pyplot as plt
+    # blue_color = "#7CB9E8"
+    # yellow_color = "gold"
     # define plt
     # plt.figure(figsize=(10, 10))
 
@@ -680,7 +680,6 @@ def update_path_planner_lidar(client, path_planner, car_position, car_direction,
     # print("this is path",path)
     # Visualizer.plot_route(path)
     # # input()
-    return_intermediate_results = return_intermediate_results
     if return_intermediate_results:
         cx, cy = path[0][:, 1], -path[0][:, 2]
         curve = path[0][:, 3]
