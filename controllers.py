@@ -645,7 +645,9 @@ def update_path_planner_lidar(client, path_planner, car_position, car_direction,
     out = path_planner.calculate_path_in_global_frame(
         lidar_cones_by_type, car_position, car_direction, return_intermediate_results=True
     )
-
+    # print(out)
+    # print("this is out")
+    # print("this is the size and dim of out",[len(a) for a in out])
     (
         path,
         sorted_left,
@@ -655,6 +657,10 @@ def update_path_planner_lidar(client, path_planner, car_position, car_direction,
         left_to_right_match,
         right_to_left_match,
     ) = out
+    
+    # Visualizer.plot_intermediate_results(out,lidar_cones_by_type,car_position, car_direction)
+    # print(out)
+    # print("this is out",out)
         
     # all_cones = np.row_stack([cones_left, cones_right, cones_unknown])
 
@@ -676,7 +682,7 @@ def update_path_planner_lidar(client, path_planner, car_position, car_direction,
     # # input()
     return_intermediate_results = return_intermediate_results
     if return_intermediate_results:
-        cx, cy = path[0][:, 1], path[0][:, 2]
+        cx, cy = path[0][:, 1], -path[0][:, 2]
         curve = path[0][:, 3]
     else:    
         cx, cy = path[:, 1], -path[:, 2]

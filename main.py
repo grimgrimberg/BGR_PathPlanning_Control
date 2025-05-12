@@ -36,7 +36,7 @@ def main():
     # python main.py --mode calibration thats what we should run on terminal
     args = parser.parse_args()
     
-    return_intermediate_results = False
+    return_intermediate_results = False #works also at true\False, works with true, dimensionality issue
     experimental_performance_improvements = True #works also at true\False
     # Initialize client and path planner
     # start_time = time.perf_counter()

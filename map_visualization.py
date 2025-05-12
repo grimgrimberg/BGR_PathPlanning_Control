@@ -6,7 +6,7 @@ from vehicle_config import Vehicle_config as conf
 # from animation_loop import v_log
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Necessary for 3D plotting
-
+from fsd_path_planning.utils.math_utils import unit_2d_vector_from_angle, rotate
 class Visualizer:
     @staticmethod
     def plot_car(x, y, yaw, steer=0.0, truckcolor="-k"):
@@ -435,3 +435,74 @@ class Visualizer:
 
     #     plt.draw()
     #     plt.pause(0.01)  # Explicit GUI update
+
+    @staticmethod
+    def plot_intermediate_results(out,lidar_cones_by_type,car_position, car_direction):
+        # cones_left, cones_right, cones_unknown = lidar_cones_by_type.values()
+        plt.scatter(cones_left[:, 0], cones_left[:, 1], c=blue_color, label="left")
+        plt.scatter(cones_right[:, 0], cones_right[:, 1], c=yellow_color, label="right")
+        plt.scatter(cones_unknown[:, 0], cones_unknown[:, 1], c="k", label="unknown")
+
+        plt.legend()
+
+        plt.plot(
+            [car_position[0], car_position[0] + car_direction[0]],
+            [car_position[1], car_position[1] + car_direction[1]],
+            c="k",
+        )
+        plt.title("Computed path")
+        plt.plot(*out[:, 1:3].T)
+
+        plt.axis("equal")
+
+        plt.show()
+
+        plt.title("Curvature over distance")
+        plt.plot(out[:, 0], out[:, 3])
+        
+        ##
+        all_cones = np.row_stack([cones_left, cones_right, cones_unknown])
+
+
+        plt.plot(*all_cones.T, "o", c="k")
+        plt.plot(*sorted_left.T, "o-", c=blue_color)
+        plt.plot(*sorted_right.T, "o-", c=yellow_color)
+        plt.title("Sorted cones")
+        plt.axis("equal")
+        plt.show()
+
+
+        plt.plot(*all_cones.T, "o", c="k")
+        plt.plot(*left_cones_with_virtual.T, "o-", c=blue_color)
+        plt.plot(*right_cones_with_virtual.T, "o-", c=yellow_color)
+        plt.title("Left and right cones with virtual cones")
+        plt.axis("equal")
+        plt.show()
+
+        plt.plot(*all_cones.T, "o", c="k")
+
+
+        for left, right_idx in zip(left_cones_with_virtual, left_to_right_match):
+            plt.plot(
+                [left[0], right_cones_with_virtual[right_idx][0]],
+                [left[1], right_cones_with_virtual[right_idx][1]],
+                "-",
+                c=blue_color,
+            )
+
+
+        for right, left_idx in zip(right_cones_with_virtual, right_to_left_match):
+            plt.plot(
+                [right[0], left_cones_with_virtual[left_idx][0]],
+                [right[1], left_cones_with_virtual[left_idx][1]],
+                "-",
+                c=yellow_color,
+                alpha=0.5,
+            )
+
+        plt.title("Left and right matches")
+        plt.axis("equal")
+        plt.show()
+
+        ###
+        
