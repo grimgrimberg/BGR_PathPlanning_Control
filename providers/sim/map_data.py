@@ -3,7 +3,7 @@ import numpy as np
 from providers.sim.sim_util import FSDSClientSingleton, get_car_orientation
 from fsd_path_planning import ConeTypes
 
-class SimMapDataProvider:
+class SimMapProvider:
     def __init__(self):
         self.client = FSDSClientSingleton.instance()
 

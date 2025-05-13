@@ -5,7 +5,7 @@ import math
 import logging
 import cvxpy as cp  # For MPC
 from simple_pid import PID
-from providers.sim.sim_util import load_cones_from_referee, sim_car_state, load_cones_from_lidar,load_cones_from_lidar1
+from providers.sim.sim_util import load_cones_from_referee, sim_car_state ,load_cones_from_lidar1
 from vehicle_config import Vehicle_config as conf
 import control as ctrl
 from fsd_path_planning import ConeTypes

@@ -52,9 +52,9 @@ class ControlManager:
                     s.update(data, dt)
         except KeyboardInterrupt:
             log.info("Stopping …")
-        finally:
-            for s in self.subscribers: s.finish()
-            for p in self.providers:   p.stop()
+        # finally:
+            # for s in self.subscribers: s.finish()
+            # for p in self.providers:   p.stop()
 
     # ---------- optional ----------
     def run_calibration(self):

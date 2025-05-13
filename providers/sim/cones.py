@@ -4,6 +4,7 @@ import numpy as np
 from providers.sim.sim_util import FSDSClientSingleton, get_car_orientation, pointgroup_to_cone
 from sub_modules.fsds.utils import to_eularian_angles
 from fsd_path_planning import ConeTypes
+from .sim_util import pointgroup_to_cone
 
 
 
@@ -16,7 +17,7 @@ class SimConeProvider:
     def stop(self):      pass
 
     def read(self) -> Dict[str, np.ndarray]:
-        min_cone_distance = 5 # Minimum distance threshold [m]
+        min_cone_distance = 0 # Minimum distance threshold [m]
         max_cone_distance = 40 # Maximum distance threshold [m]
 
         # Retrieve LiDAR data from the simulator
@@ -37,10 +38,7 @@ class SimConeProvider:
         points = points[valid_indices]
 
         # Obtain car's orientation and position
-        car_position, car_direction = get_car_orientation(self.client)
-        car_state = self.client.getCarState()
-        orientation = car_state.kinematics_estimated.orientation
-        yaw = to_eularian_angles(orientation)[2]
+        car_position, car_direction, yaw = get_car_orientation(self.client)
 
         # Group points to identify cones
         current_group, cones = [], []
@@ -51,8 +49,7 @@ class SimConeProvider:
                 current_group.append({'x': points[i][0], 'y': points[i][1]})
             else:
                 if current_group:
-                    cone = SimConeProvider.pointgroup_to_cone(current_group)
-
+                    cone = pointgroup_to_cone(current_group)
                     old_x, old_y = cone['x'] + 1.3, -cone['y']  # Adjust for LiDAR position relative to the car center
                     # Rotate points to global reference frame
                     cone['x'] = np.cos(-yaw) * old_x - np.sin(-yaw) * old_y + car_position[0]

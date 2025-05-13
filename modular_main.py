@@ -32,7 +32,7 @@ def build_manager(args):
     providers = [
         SimCarStateProvider(),      # vehicle pose & twist
         SimConeProvider(),          # LiDAR-derived track cones
-        SimMapProvider(optional=True)
+        SimMapProvider()
     ]
 
     # Subscribers
