@@ -36,4 +36,6 @@ class SimMapProvider:
         cones_by_type[ConeTypes.ORANGE_BIG] = np.array(cones_by_colors[2])  # Large Orange cones
         cones_by_type[ConeTypes.ORANGE_SMALL] = np.array(cones_by_colors[3])  # Small Orange cones
 
-        return {'map':(cones_by_type, car_position, car_direction)}
+        return {'map':(cones_by_type, car_position, car_direction),
+                'cones_map': cones_by_type
+                }

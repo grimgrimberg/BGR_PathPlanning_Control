@@ -25,6 +25,8 @@ def cli() -> argparse.Namespace:
                    help="Enable live plots / post-run analysis")
     p.add_argument("--dt", type=float, default=0.05,
                    help="Main-loop period [s]")
+    p.add_argument("--output_dir", type=str, default=".",
+                   help="Output directory for plots and data")
     return p.parse_args()
 
 def build_manager(args):
@@ -41,7 +43,7 @@ def build_manager(args):
         ControllerSub()             # produces throttle / steer commands
     ]
 
-    return ControlManager(providers, subs, dt=args.dt, enable_plots=args.plot)
+    return ControlManager(providers, subs, dt=args.dt, enable_plots=args.plot, output_dir=args.output_dir)
 
 def main():
     args = cli()

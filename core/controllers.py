@@ -9,7 +9,7 @@ from providers.sim.sim_util import load_cones_from_referee, sim_car_state ,load_
 from vehicle_config import Vehicle_config as conf
 import control as ctrl
 from fsd_path_planning import ConeTypes
-from map_visualization import Visualizer
+# from visualization import Visualizer
 
 # Constants for normalization
 MAX_STEER_ANGLE = conf.MAX_STEER  # Maximum steering angle in radians
@@ -382,7 +382,7 @@ class StanleyController: #old
         steering = theta_e + math.atan2(self.k * e_ct, state.v + self.k_soft)
         steering = normalize_angle(steering)
         steering = np.clip(steering, -conf.MAX_STEER, conf.MAX_STEER)
-        Visualizer.cross_track_error(e_ct,path,cx,cy,theta_e)
+        # Visualizer.cross_track_error(e_ct,path,cx,cy,theta_e)
 
         
         return steering, target_ind

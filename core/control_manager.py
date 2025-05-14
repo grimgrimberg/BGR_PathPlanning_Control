@@ -1,31 +1,20 @@
 import time
 import logging
 from typing import List, Protocol, Any
-
+from core.data.plot_data import PlotData
+from core.visualization import PlotManager
 log = logging.getLogger("ControlManager")
 
-class Provider(Protocol):
-    """Anything that yields data each cycle."""
-    def start(self): ...
-    def stop(self): ...
-    def read(self) -> dict: ...
-
-class Subscriber(Protocol):
-    """Anything that updates internal state each cycle using provider data."""
-    def init(self, providers: List[Provider]): ...
-    def update(self, data: dict, dt: float): ...
-    def finish(self): ...
 
 class ControlManager:
-    def __init__(self,
-                 providers:  List[Provider],
-                 subscribers:List[Subscriber],
-                 dt: float,
-                 enable_plots: bool = False):
-        self.providers   = providers
+    def __init__(self, providers, subscribers, dt, enable_plots, output_dir):
+        self.providers = providers
         self.subscribers = subscribers
-        self.dt          = dt
-        self.enable_plots= enable_plots
+        self.dt = dt
+        self.enable_plots = enable_plots
+        self.plot_data = PlotData()             # NEW: single data object
+        self.plotter = PlotManager(live=enable_plots)
+        self.output_dir = output_dir
 
     # ---------- public API ----------
     def run(self):
@@ -50,6 +39,23 @@ class ControlManager:
 
                 for s in self.subscribers:
                     s.update(data, dt)
+                    
+                self.plot_data.state = data.get("car_state")
+                self.plot_data.states = data.get("states")
+                self.plot_data.path = data.get("path")
+                self.plot_data.cones_map = data.get("cones_map")
+                self.plot_data.cones_lidar = data.get("cones_lidar")
+                self.plot_data.cx = data.get("cx")
+                self.plot_data.cy = data.get("cy")
+                self.plot_data.acceleration = data.get("acceleration")
+                self.plot_data.steering = data.get("steering")
+                self.plot_data.target_ind = data.get("target_ind")
+                self.plot_data.v_log = data.get("v_log")
+                self.plot_data.full_path = data.get("full_path", [])
+
+                if self.enable_plots or True:
+                    self.plotter.update({"plot_data": self.plot_data})
+                
         except KeyboardInterrupt:
             log.info("Stopping …")
         # finally:

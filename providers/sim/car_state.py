@@ -3,7 +3,7 @@ import numpy as np
 from providers.sim.sim_util import FSDSClientSingleton
 from sub_modules.fsds.client import FSDSClient   # your existing AirSim wrapper
 from sub_modules.fsds.utils import to_eularian_angles
-from car_state import State
+from core.data.car_state import State
 
 class SimCarStateProvider:
     def __init__(self):

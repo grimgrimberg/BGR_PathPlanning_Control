@@ -1,12 +1,12 @@
  #main.py
 import time
 import logging
-from logger import init_logger,visualize_timing_data,log_timing
+from core.logger import init_logger,visualize_timing_data,log_timing
 from fsd_path_planning import PathPlanner, MissionTypes
 from providers.sim.sim_util import init_client, load_cones_from_referee, load_cones_from_lidar
 from vehicle_config import Vehicle_config as conf
-from animation_loop import animation_main_loop
-from controllers import (
+from old.animation_loop import animation_main_loop
+from core.controllers import (
     AccelerationPIDController,
     get_steering_controller,
     LQGAccelerationController,
@@ -14,9 +14,9 @@ from controllers import (
 import matplotlib.pyplot as plt 
 from fsd_path_planning import ConeTypes
 
-from Preformance_analysis.simulation_logger import SimulationLogger
-from map_visualization import Visualizer
-from Calibration_loop import calibration_loop
+from preformance_analysis.simulation_logger import SimulationLogger
+from core.visualization import Visualizer
+from old.Calibration_loop import calibration_loop
 import argparse
 
 

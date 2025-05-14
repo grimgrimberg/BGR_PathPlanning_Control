@@ -61,5 +61,8 @@ class SimConeProvider:
         cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
         print(f"lidar detect: {np.array(cones).shape}")
         cones_by_type[ConeTypes.UNKNOWN] = np.array(cones)
-
-        return {'cones':(cones_by_type, car_position, car_direction)}
+        cones_lidar = np.array(cones)
+        return {
+            'cones':(cones_by_type, car_position, car_direction),
+            'cones_lidar':cones_lidar    
+            }

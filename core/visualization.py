@@ -1,13 +1,75 @@
-import math
-import numpy as np
+from __future__ import annotations
+
+import itertools, math, logging, os
+from pathlib import Path
+from typing import List, Dict, Any
+
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+
+from core.data.plot_data import PlotData
 from fsd_path_planning import ConeTypes
 from vehicle_config import Vehicle_config as conf
-# from animation_loop import v_log
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # Necessary for 3D plotting
-from fsd_path_planning.utils.math_utils import unit_2d_vector_from_angle, rotate
-class Visualizer:
+
+log = logging.getLogger("PlotManager")
+
+_FIG_COUNTER = itertools.count(1)        # fig_001.png, fig_002.png, …
+_FIGS: List[matplotlib.figure.Figure] = []
+_LIVE = True
+  
+def _auto_fig() -> matplotlib.figure.Figure:
+    """Create a figure, keep it for later saving, and return it."""
+    fig = plt.figure()
+    _FIGS.append(fig)
+    return fig
+
+
+def _maybe_show():
+    if _LIVE:
+        plt.pause(0.001)  
+        
+class PlotManager:
+    def __init__(self, live: bool):
+        global _LIVE
+        _LIVE = live
+        # if live:
+        #     plt.ion()
+        # else:
+        #     matplotlib.use("Agg")  # headless / non-interactive
+        self.data = PlotData()  # single data object
+
+        # # histories
+        # self.cte_history: List[float] = []
+        # self.theta_e_history: List[float] = []
+
+
+        # ---------- life-cycle hooks ------------------------------------- #
+    def update(self, _data: Dict[str, Any]):
+        self.data = _data.get("plot_data", self.data)
+        # if _LIVE:
+        PlotManager.draw_frame(
+            self.data.cx,
+            self.data.cy,
+            self.data.states,
+            self.data.cones_map,
+            self.data.target_ind,
+            self.data.state,
+            self.data.steering,
+            self.data.v_log,
+            self.data.cones_lidar
+        )
+    # ---------------------------------------------------------------- #
+    @staticmethod
+    def save_all(output_dir: str | Path):
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        for idx, fig in enumerate(_FIGS, 1):
+            fname = Path(output_dir) / f"fig_{idx:03d}.png"
+            fig.savefig(fname, dpi=150)
+            log.info("saved %s", fname)
+        log.info("exported %d figures to %s", len(_FIGS), output_dir)
+
+
     @staticmethod
     def plot_car(x, y, yaw, steer=0.0, truckcolor="-k"):
         """
@@ -92,17 +154,16 @@ class Visualizer:
         """
         Plot cones based on their type (left or right).
         """
-        
-        Visualizer.plot_map(cones_by_type)
+        PlotManager.plot_map(cones_by_type)
         if len(cones_lidar) > 0 and isinstance(cones_lidar, np.ndarray):
             plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=2,)
              
-    @staticmethod
-    def plot_route(path):
-        cx, cy = path[:, 1], path[:, 2]
-        plt.figure()
-        plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
-        plt.show()
+    # @staticmethod
+    # def plot_route(path):
+    #     cx, cy = path[:, 1], path[:, 2]
+    #     plt.figure()
+    #     plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
+    #     plt.show()
 
     @staticmethod
     def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar):
@@ -112,9 +173,9 @@ class Visualizer:
         plt.cla()
         plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
         plt.plot(states.x, states.y, "-c", label="Vehicle Path")
-        Visualizer.plot_cones(cones_by_type, cones_lidar)
+        PlotManager.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
-        Visualizer.plot_car(state.x, -state.y, -state.yaw, steer=di)
+        PlotManager.plot_car(state.x, -state.y, -state.yaw, steer=di)
         plt.axis("equal")
         plt.grid(True)
         plt.title(f"Speed [km/h]: {state.v * 3.6:.2f}")
@@ -153,8 +214,8 @@ class Visualizer:
             cy (numpy.ndarray): Y-coordinates of the path points.
             theta_e (float): Heading error at the current timestep.
         """
-        Visualizer.cte_history.append(e_ct)
-        Visualizer.theta_e_history.append(theta_e)
+        PlotManager.cte_history.append(e_ct)
+        PlotManager.theta_e_history.append(theta_e)
 
     @staticmethod
     def plot_cte(dt=0.05):
@@ -164,14 +225,14 @@ class Visualizer:
         Args:
             dt (float): Time step between control updates. Adjust as needed.
         """
-        if len(Visualizer.cte_history) == 0:
+        if len(PlotManager.cte_history) == 0:
             print("No CTE data to plot.")
             return
 
-        time = np.arange(0, len(Visualizer.cte_history) * dt, dt)
+        time = np.arange(0, len(PlotManager.cte_history) * dt, dt)
         
         plt.figure(figsize=(10,4))
-        plt.plot(time, Visualizer.cte_history, label='Cross Track Error')
+        plt.plot(time, PlotManager.cte_history, label='Cross Track Error')
         plt.xlabel('Time [s]')
         plt.ylabel('CTE [m]')
         plt.title('Cross Track Error Over Time')
@@ -243,7 +304,7 @@ class Visualizer:
         plt.figure()
         # plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
         plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
-        Visualizer.plot_cones(cones_by_type, cones_lidar)
+        PlotManager.plot_cones(cones_by_type, cones_lidar)
         # plt.plot (X,Y,label ='planned path combined',linestyle="-", color="g", markersize=1)
         plt.plot(X_flat, Y_flat, label='planned path combined', linestyle="-", color="g", markersize=1)
         plt.title(f"Path Deviation (MSE: {mse:.2f})")
@@ -436,73 +497,73 @@ class Visualizer:
     #     plt.draw()
     #     plt.pause(0.01)  # Explicit GUI update
 
-    @staticmethod
-    def plot_intermediate_results(out,lidar_cones_by_type,car_position, car_direction):
-        # cones_left, cones_right, cones_unknown = lidar_cones_by_type.values()
-        plt.scatter(cones_left[:, 0], cones_left[:, 1], c=blue_color, label="left")
-        plt.scatter(cones_right[:, 0], cones_right[:, 1], c=yellow_color, label="right")
-        plt.scatter(cones_unknown[:, 0], cones_unknown[:, 1], c="k", label="unknown")
+    # @staticmethod
+    # def plot_intermediate_results(out,lidar_cones_by_type,car_position, car_direction):
+    #     # cones_left, cones_right, cones_unknown = lidar_cones_by_type.values()
+    #     plt.scatter(cones_left[:, 0], cones_left[:, 1], c=blue_color, label="left")
+    #     plt.scatter(cones_right[:, 0], cones_right[:, 1], c=yellow_color, label="right")
+    #     plt.scatter(cones_unknown[:, 0], cones_unknown[:, 1], c="k", label="unknown")
 
-        plt.legend()
+    #     plt.legend()
 
-        plt.plot(
-            [car_position[0], car_position[0] + car_direction[0]],
-            [car_position[1], car_position[1] + car_direction[1]],
-            c="k",
-        )
-        plt.title("Computed path")
-        plt.plot(*out[:, 1:3].T)
+    #     plt.plot(
+    #         [car_position[0], car_position[0] + car_direction[0]],
+    #         [car_position[1], car_position[1] + car_direction[1]],
+    #         c="k",
+    #     )
+    #     plt.title("Computed path")
+    #     plt.plot(*out[:, 1:3].T)
 
-        plt.axis("equal")
+    #     plt.axis("equal")
 
-        plt.show()
+    #     plt.show()
 
-        plt.title("Curvature over distance")
-        plt.plot(out[:, 0], out[:, 3])
+    #     plt.title("Curvature over distance")
+    #     plt.plot(out[:, 0], out[:, 3])
         
-        ##
-        all_cones = np.row_stack([cones_left, cones_right, cones_unknown])
+    #     ##
+    #     all_cones = np.row_stack([cones_left, cones_right, cones_unknown])
 
 
-        plt.plot(*all_cones.T, "o", c="k")
-        plt.plot(*sorted_left.T, "o-", c=blue_color)
-        plt.plot(*sorted_right.T, "o-", c=yellow_color)
-        plt.title("Sorted cones")
-        plt.axis("equal")
-        plt.show()
+    #     plt.plot(*all_cones.T, "o", c="k")
+    #     plt.plot(*sorted_left.T, "o-", c=blue_color)
+    #     plt.plot(*sorted_right.T, "o-", c=yellow_color)
+    #     plt.title("Sorted cones")
+    #     plt.axis("equal")
+    #     plt.show()
 
 
-        plt.plot(*all_cones.T, "o", c="k")
-        plt.plot(*left_cones_with_virtual.T, "o-", c=blue_color)
-        plt.plot(*right_cones_with_virtual.T, "o-", c=yellow_color)
-        plt.title("Left and right cones with virtual cones")
-        plt.axis("equal")
-        plt.show()
+    #     plt.plot(*all_cones.T, "o", c="k")
+    #     plt.plot(*left_cones_with_virtual.T, "o-", c=blue_color)
+    #     plt.plot(*right_cones_with_virtual.T, "o-", c=yellow_color)
+    #     plt.title("Left and right cones with virtual cones")
+    #     plt.axis("equal")
+    #     plt.show()
 
-        plt.plot(*all_cones.T, "o", c="k")
-
-
-        for left, right_idx in zip(left_cones_with_virtual, left_to_right_match):
-            plt.plot(
-                [left[0], right_cones_with_virtual[right_idx][0]],
-                [left[1], right_cones_with_virtual[right_idx][1]],
-                "-",
-                c=blue_color,
-            )
+    #     plt.plot(*all_cones.T, "o", c="k")
 
 
-        for right, left_idx in zip(right_cones_with_virtual, right_to_left_match):
-            plt.plot(
-                [right[0], left_cones_with_virtual[left_idx][0]],
-                [right[1], left_cones_with_virtual[left_idx][1]],
-                "-",
-                c=yellow_color,
-                alpha=0.5,
-            )
+    #     for left, right_idx in zip(left_cones_with_virtual, left_to_right_match):
+    #         plt.plot(
+    #             [left[0], right_cones_with_virtual[right_idx][0]],
+    #             [left[1], right_cones_with_virtual[right_idx][1]],
+    #             "-",
+    #             c=blue_color,
+    #         )
 
-        plt.title("Left and right matches")
-        plt.axis("equal")
-        plt.show()
 
-        ###
+    #     for right, left_idx in zip(right_cones_with_virtual, right_to_left_match):
+    #         plt.plot(
+    #             [right[0], left_cones_with_virtual[left_idx][0]],
+    #             [right[1], left_cones_with_virtual[left_idx][1]],
+    #             "-",
+    #             c=yellow_color,
+    #             alpha=0.5,
+    #         )
+
+    #     plt.title("Left and right matches")
+    #     plt.axis("equal")
+    #     plt.show()
+
+    #     ###
         

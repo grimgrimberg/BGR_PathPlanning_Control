@@ -33,7 +33,16 @@ class PlannerSub:
                 break
             self.target_ind += 1
         #TODO: consider keep useing the old path if the new one is bad
-        
+        if data.get("return_intermediate_results"):
+            cx, cy = self.current_path[0][:, 1], -self.current_path[0][:, 2]
+            curve = self.current_path[0][:, 3]
+        else:    
+            cx, cy = self.current_path[:, 1], -self.current_path[:, 2]
+            curve = self.current_path[:, 3]
+
         data["path"] = self.current_path  # expose to other subscribers
+        data["cx"] = cx
+        data["cy"] = cy
+        data["curve"] = curve
         data["target_ind"] = self.target_ind
         data["return_intermediate_results"] = False

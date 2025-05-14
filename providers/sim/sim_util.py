@@ -7,7 +7,7 @@ import logging
 import sub_modules.fsds as fsds # local directory
 from sub_modules.fsds.utils import to_eularian_angles
 import math
-from map_visualization import Visualizer
+# from visualization import Visualizer
 import logging, time, threading
 # Initialize logger
 logger = logging.getLogger('SimLogger')
@@ -114,7 +114,7 @@ def load_cones_from_lidar1(client: fsds.FSDSClient):
     for i, cone_group in enumerate(cones_by_type):
         logger.info(f"Type {i}: {len(cone_group)} cones")
     print("plots ocklock")
-    Visualizer.plot_cones(cones_by_type)
+    # Visualizer.plot_cones(cones_by_type)
 
     return cones_by_type, car_position, car_direction
     
