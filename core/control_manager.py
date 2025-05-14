@@ -3,6 +3,7 @@ import logging
 from typing import List, Protocol, Any
 from core.data.plot_data import PlotData
 from core.visualization import PlotManager
+from pathlib import Path
 
 log = logging.getLogger("ControlManager")
 
@@ -15,13 +16,56 @@ class ControlManager:
         self.enable_plots = enable_plots
         self.plot_data = PlotData()
         self.plotter = PlotManager(live=enable_plots)
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
         
         log.debug(f"Configuration - dt: {dt}, plots enabled: {enable_plots}, "
                  f"output directory: {output_dir}")
         log.debug(f"Initialized with {len(providers)} providers and {len(nodes)} nodes")
 
-    # ---------- public API ----------
+    def _generate_final_plots(self):
+        """Generate and save all plots at the end of the run."""
+        log.info("Generating final plots...")
+        
+        try:
+            # Create plots directory
+            plots_dir = self.output_dir / "plots"
+            plots_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate all available plots
+            if self.plot_data.states and self.plot_data.cx and self.plot_data.cy:
+                # Path tracking plot
+                self.plotter.show(self.plot_data.cx, self.plot_data.cy, self.plot_data.states)
+                
+                # Speed profile
+                self.plotter.plot_speed_profile(self.plot_data.states)
+                
+                # Control inputs
+                self.plotter.plot_control_inputs(self.plot_data.states)
+                
+                # Path deviation
+                if self.plot_data.full_path:
+                    self.plotter.plot_path_deviation(
+                        self.plot_data.cx,
+                        self.plot_data.cy,
+                        self.plot_data.states,
+                        self.plot_data.full_path
+                    )
+                
+                # Acceleration plots
+                self.plotter.plot_all_accelerations(self.plot_data.states)
+                self.plotter.plot_gg(self.plot_data.states)
+                
+                # Cross track error
+                if hasattr(self.plotter, 'cte_history') and len(self.plotter.cte_history) > 0:
+                    self.plotter.plot_cte()
+            
+            # Save all generated plots
+            self.plotter.save_all(plots_dir)
+            log.info(f"All plots saved to {plots_dir}")
+            
+        except Exception as e:
+            log.error(f"Error generating final plots: {str(e)}", exc_info=True)
+
     def run(self):
         log.info(f"Starting main control loop - dt={self.dt:.3f}s, plots={self.enable_plots}")
         
@@ -101,10 +145,15 @@ class ControlManager:
                 self.plot_data.full_path = data.get("full_path", [])
 
                 if self.enable_plots or True:
-                    self.plotter.update({"plot_data": self.plot_data})
+                    try:
+                        self.plotter.update({"plot_data": self.plot_data})
+                        log.debug("Plot data updated successfully")
+                    except Exception as e:
+                        log.error(f"Error updating plots: {str(e)}", exc_info=True)
                 
         except KeyboardInterrupt:
             log.info("Received keyboard interrupt, stopping control loop")
+            self._generate_final_plots()
         except Exception as e:
             log.error(f"Unexpected error in control loop: {str(e)}", exc_info=True)
             raise
