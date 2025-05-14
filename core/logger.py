@@ -1,6 +1,7 @@
 import time
 import logging
 import logging.config
+import logging.handlers
 import csv
 import os
 import pandas as pd
@@ -25,45 +26,105 @@ def visualize_timing_data():
 # Create a safe filename for the log file
 def get_safe_log_filename():
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")  # Format: YYYY-MM-DD_HH-MM-SS
-    return f'logs/{timestamp}.log'
+    return f'logs/formula_{timestamp}.log'
 
-# Updated logging configuration
+# Enhanced logging configuration
 logging_config = {
     'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'detailed': {
+            'format': '%(asctime)s | %(name)-12s | %(levelname)-8s | %(processName)s-%(thread)d | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'simple': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        }
+    },
     'handlers': {
-        'fileHandler': {
-            'class': 'logging.FileHandler',
-            'formatter': 'myFormatter',
-            'filename': get_safe_log_filename(),  # Use the safe filename function
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout'
+        },
+        'file_handler': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'DEBUG',
+            'formatter': 'detailed',
+            'filename': get_safe_log_filename(),
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5
+        },
+        'error_file_handler': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'ERROR',
+            'formatter': 'detailed',
+            'filename': 'logs/formula_errors.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5
+        },
+        'performance_handler': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'formatter': 'detailed',
+            'filename': 'logs/formula_performance.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 3
         }
     },
     'loggers': {
         'SimLogger': {
-            'handlers': ['fileHandler'],
+            'level': 'DEBUG',
+            'handlers': ['console', 'file_handler', 'error_file_handler'],
+            'propagate': False
+        },
+        'PerformanceLogger': {
             'level': 'INFO',
+            'handlers': ['performance_handler', 'console'],
+            'propagate': False
+        },
+        'Controller': {
+            'level': 'DEBUG',
+            'handlers': ['file_handler', 'console'],
+            'propagate': False
+        },
+        'Planner': {
+            'level': 'DEBUG',
+            'handlers': ['file_handler', 'console'],
+            'propagate': False
         }
     },
-    'formatters': {
-        'myFormatter': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        }
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console', 'file_handler']
     }
 }
 
 def init_logger():
-    import os
-
+    """Initialize the enhanced logging system."""
     # Ensure the logs directory exists
     os.makedirs("logs", exist_ok=True)
-
-    # Initialize the logger
+    
+    # Initialize the logger with the enhanced configuration
     logging.config.dictConfig(logging_config)
+    
+    # Get the main logger
     logger = logging.getLogger('SimLogger')
-    logger.info('Logger initialized')
+    logger.info('Enhanced logging system initialized')
+    
+    # Initialize the performance logger
+    perf_logger = logging.getLogger('PerformanceLogger')
+    perf_logger.info('Performance logging initialized')
 
 def log_timing(section, duration):
+    """Log timing information with enhanced detail."""
     global timer
-    # Append the new data as a row
+    # Log to the performance logger
+    perf_logger = logging.getLogger('PerformanceLogger')
+    perf_logger.info(f"Section timing - {section}: {duration:.4f} seconds")
+    
+    # Store in the DataFrame for visualization
     new_row = {'Section': section, 'Duration': duration}
     timer = pd.concat([timer, pd.DataFrame([new_row])], ignore_index=True)
 
