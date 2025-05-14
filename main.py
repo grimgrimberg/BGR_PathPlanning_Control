@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Run either a simulation or calibration session with a pluggable provider/
-subscriber pipeline.  Use --help for options.
+nodes pipeline.  Use --help for options.
 """
 import argparse
 import logging
@@ -13,8 +13,8 @@ from providers.sim.map_data  import SimMapProvider
 # from providers.ros.car_state import ROSCarStateProvider
 # from providers.ros.cones     import ROSConeProvider
 # from providers.ros.map_data  import ROSMapProvider
-from subscribers.planner     import PlannerSub
-from subscribers.controller  import ControllerSub
+from nodes.planner     import Planner
+from nodes.controller  import Controller
 
 def cli() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -37,13 +37,12 @@ def build_manager(args):
         SimMapProvider()
     ]
 
-    # Subscribers
-    subs = [
-        PlannerSub(),               # produces path based on cones & map
-        ControllerSub()             # produces throttle / steer commands
+    nodes = [
+        Planner(),               # produces path based on cones & map
+        Controller()             # produces throttle / steer commands
     ]
 
-    return ControlManager(providers, subs, dt=args.dt, enable_plots=args.plot, output_dir=args.output_dir)
+    return ControlManager(providers, nodes, dt=args.dt, enable_plots=args.plot, output_dir=args.output_dir)
 
 def main():
     args = cli()

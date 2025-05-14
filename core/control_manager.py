@@ -7,9 +7,9 @@ log = logging.getLogger("ControlManager")
 
 
 class ControlManager:
-    def __init__(self, providers, subscribers, dt, enable_plots, output_dir):
+    def __init__(self, providers, nodes, dt, enable_plots, output_dir):
         self.providers = providers
-        self.subscribers = subscribers
+        self.nodes = nodes
         self.dt = dt
         self.enable_plots = enable_plots
         self.plot_data = PlotData()             # NEW: single data object
@@ -21,7 +21,7 @@ class ControlManager:
         log.info("Starting main loop dt=%.3f s (plots=%s)",
                  self.dt, self.enable_plots)
         for p in self.providers:   p.start()
-        for s in self.subscribers: s.init(self.providers)
+        for n in self.nodes: n.init(self.providers)
 
         t_prev = time.perf_counter()
         try:
@@ -37,8 +37,8 @@ class ControlManager:
                 for p in self.providers:
                     data.update(p.read())
 
-                for s in self.subscribers:
-                    s.update(data, dt)
+                for n in self.nodes:
+                    n.update(data, dt)
                     
                 self.plot_data.state = data.get("car_state")
                 self.plot_data.states = data.get("states")
@@ -59,7 +59,7 @@ class ControlManager:
         except KeyboardInterrupt:
             log.info("Stopping …")
         # finally:
-            # for s in self.subscribers: s.finish()
+            # for n in self.nodes: n.finish()
             # for p in self.providers:   p.stop()
 
     # ---------- optional ----------

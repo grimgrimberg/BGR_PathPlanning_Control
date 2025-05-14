@@ -9,7 +9,7 @@ from providers.sim.sim_util import FSDSClientSingleton
 from core.data.car_state import State, States
 log = logging.getLogger("Controller")
 
-class ControllerSub:
+class Controller:
     def __init__(self):
         self.accel_ctrl = AccelerationPIDController(
             kp=conf.kp_accel,
@@ -38,7 +38,7 @@ class ControllerSub:
             v=car_state.v
         )
         self.states.append(0,state_modifier)
-        data["states"] = self.states
+        data["states"] = self.states # expose to other nodes
         
         path_track = np.column_stack((np.arange(len(cx)), cx, cy)) 
         print(f"Car state: x={car_state.x}, y={car_state.y}, yaw={car_state.yaw}, v={car_state.v}")
@@ -46,6 +46,7 @@ class ControllerSub:
         steering, target_ind   = self.steer_ctrl.compute_steering(car_state, path_track, target_ind)
         curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
         acceleration      = self.accel_ctrl.compute_acceleration(car_state.v, curvature)
+        # expose to other nodes
         data["v_log"] = self.accel_ctrl.maxspeed
         data["acceleration"] = acceleration
         data["steering"] = steering

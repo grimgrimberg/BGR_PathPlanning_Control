@@ -6,7 +6,7 @@ from fsd_path_planning import PathPlanner, MissionTypes
 
 log = logging.getLogger("Planner")
 
-class PlannerSub:
+class Planner:
     def __init__(self):
         self.planner = PathPlanner(MissionTypes.trackdrive)
         self.current_path = None
@@ -40,7 +40,8 @@ class PlannerSub:
             cx, cy = self.current_path[:, 1], -self.current_path[:, 2]
             curve = self.current_path[:, 3]
 
-        data["path"] = self.current_path  # expose to other subscribers
+        # expose to other nodes
+        data["path"] = self.current_path  
         data["cx"] = cx
         data["cy"] = cy
         data["curve"] = curve
