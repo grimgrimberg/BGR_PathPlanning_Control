@@ -32,7 +32,7 @@ class ControlManager:
             plots_dir.mkdir(parents=True, exist_ok=True)
             
             # Generate all available plots
-            if self.plot_data.states and self.plot_data.cx and self.plot_data.cy:
+            if self.plot_data.states is not None and self.plot_data.cx is not None and self.plot_data.cy is not None:
                 # Path tracking plot
                 self.plotter.show(self.plot_data.cx, self.plot_data.cy, self.plot_data.states)
                 
@@ -50,10 +50,10 @@ class ControlManager:
                         self.plot_data.states,
                         self.plot_data.full_path
                     )
-                
-                # Acceleration plots
-                self.plotter.plot_all_accelerations(self.plot_data.states)
-                self.plotter.plot_gg(self.plot_data.states)
+                # TODO: add to carState all atributes needed for the plots
+                # # Acceleration plots
+                # self.plotter.plot_all_accelerations(self.plot_data.states)
+                # self.plotter.plot_gg(self.plot_data.states)
                 
                 # Cross track error
                 if hasattr(self.plotter, 'cte_history') and len(self.plotter.cte_history) > 0:
@@ -129,7 +129,7 @@ class ControlManager:
                 except Exception as e:
                     log.error(f"Error updating nodes: {str(e)}", exc_info=True)
                     raise
-                    
+                data["current_time"] = now 
                 # Update plot data
                 self.plot_data.state = data.get("car_state")
                 self.plot_data.states = data.get("states")
@@ -144,7 +144,7 @@ class ControlManager:
                 self.plot_data.v_log = data.get("v_log")
                 self.plot_data.full_path = data.get("full_path", [])
 
-                if self.enable_plots or True:
+                if self.enable_plots:
                     try:
                         self.plotter.update({"plot_data": self.plot_data})
                         log.debug("Plot data updated successfully")

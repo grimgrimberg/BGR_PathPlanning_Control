@@ -48,10 +48,13 @@ class Controller:
                 x=car_state.x, 
                 y=-car_state.y, 
                 yaw=car_state.yaw, 
-                v=car_state.v
+                v=car_state.v,
+                v_linear= car_state.v_linear,
+                v_angular= car_state.v_angular,
+                a_angular= car_state.a_angular,
+                a_linear= car_state.a_linear,
             )
-            self.states.append(0, state_modifier)
-            data["states"] = self.states # expose to other nodes
+          
             
             path_track = np.column_stack((np.arange(len(cx)), cx, cy)) 
             log.debug(f"Car state - Position: ({car_state.x:.2f}, {car_state.y:.2f}), "
@@ -62,6 +65,19 @@ class Controller:
             curvature = curve[target_ind] if target_ind < len(curve) else curve[-1]
             acceleration = self.accel_ctrl.compute_acceleration(car_state.v, curvature)
             
+            current_time = data.get("current_time", 0)
+            self.states.append(
+                current_time,
+                state_modifier,
+                steering if steering else 0.0,
+                acceleration if acceleration else 0.0,
+                self.accel_ctrl.maxspeed if self.accel_ctrl.maxspeed else 0.0,
+                v_linear= 0,
+                v_angular=0,
+                a_linear=0,
+                a_angular=0
+                )
+            data["states"] = self.states # expose to other nodes
             # Log control decisions
             log.debug(f"Control outputs - Steering: {steering:.3f}, Acceleration: {acceleration:.3f}, "
                      f"Target Index: {target_ind}, Curvature: {curvature:.3f}")
