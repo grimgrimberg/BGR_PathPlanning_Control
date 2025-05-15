@@ -44,7 +44,6 @@ class AccelerationPIDController:
         self.pid.setpoint = self.maxspeed
         acceleration = self.pid(current_speed)
         acceleration = np.clip(acceleration, conf.MAX_DECEL, conf.MAX_ACCEL)
-        logger.info(f"Current Speed: {current_speed}, Desired Speed: {desired_v}, Acceleration: {acceleration}")
         return acceleration
     
     def compute_breaking_old(self, curve, target_ind):
@@ -71,8 +70,6 @@ class AccelerationPIDController:
         
         max_speed = conf.TARGET_SPEED  # Maximum desired speed
         v_desired = max_speed * np.exp(-a * np.abs(curvature))
-        
-        logger.info(f"Curvature: {curvature}, Desired Speed: {v_desired}")
         return v_desired
 
     def _update_desired_speed(self, velocity):

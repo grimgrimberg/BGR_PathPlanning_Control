@@ -1,5 +1,6 @@
 from typing import Dict
 import math
+import logging
 import numpy as np
 from providers.sim.sim_util import FSDSClientSingleton, get_car_orientation, pointgroup_to_cone
 from sub_modules.fsds.utils import to_eularian_angles
@@ -7,7 +8,7 @@ from fsd_path_planning import ConeTypes
 from .sim_util import pointgroup_to_cone
 
 
-
+log = logging.getLogger("SimLogger")
 
 
 class SimConeProvider:
@@ -59,7 +60,7 @@ class SimConeProvider:
                 current_group = []
 
         cones_by_type = [np.zeros((0, 2)) for _ in range(5)]
-        print(f"lidar detect: {np.array(cones).shape}")
+        log.info(f"lidar detect: {np.array(cones).shape}")
         cones_by_type[ConeTypes.UNKNOWN] = np.array(cones)
         cones_lidar = np.array(cones)
         return {

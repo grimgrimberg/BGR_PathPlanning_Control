@@ -15,6 +15,7 @@ from providers.sim.map_data  import SimMapProvider
 # from providers.ros.map_data  import ROSMapProvider
 from nodes.planner     import Planner
 from nodes.controller  import Controller
+from core.logger import init_logger
 
 def cli() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -46,8 +47,9 @@ def build_manager(args):
 
 def main():
     args = cli()
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # logging.basicConfig(level=logging.INFO,
+    #                     format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    init_logger()
     mgr = build_manager(args)
 
     if args.mode == "calibration":

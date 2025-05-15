@@ -4,6 +4,7 @@ from typing import List, Protocol, Any
 from core.data.plot_data import PlotData
 from core.visualization import PlotManager
 from pathlib import Path
+from core.logger import log_timing
 
 log = logging.getLogger("ControlManager")
 
@@ -108,8 +109,8 @@ class ControlManager:
                 if dt > self.dt * 1.5:  # Warn if loop takes too long
                     log.warning(f"Loop iteration {iteration} took {dt:.3f}s "
                               f"(target: {self.dt:.3f}s)")
-
                 # Read from providers
+                t_read_providers = time.perf_counter()
                 try:
                     data = {}
                     for p in self.providers:
@@ -120,8 +121,10 @@ class ControlManager:
                 except Exception as e:
                     log.error(f"Error reading from providers: {str(e)}", exc_info=True)
                     raise
-
+                
+                log_timing("read", time.perf_counter() - t_read_providers)
                 # Update nodes
+                t_update_nodes = time.perf_counter()
                 try:
                     for n in self.nodes:
                         n.update(data, dt)
@@ -129,6 +132,7 @@ class ControlManager:
                 except Exception as e:
                     log.error(f"Error updating nodes: {str(e)}", exc_info=True)
                     raise
+                log_timing("update_nodes", time.perf_counter() - t_update_nodes)
                 data["current_time"] = now 
                 # Update plot data
                 self.plot_data.state = data.get("car_state")
