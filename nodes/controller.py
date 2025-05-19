@@ -25,10 +25,6 @@ class Controller:
         log.debug(f"Controller initialized with target speed: {conf.TARGET_SPEED}, "
                  f"lookahead distance: {conf.LOOKAHEAD_DISTANCE}")
 
-    def init(self, providers):
-        log.info("Controller initialization with providers")
-        pass
-
     def update(self, data: Dict, dt: float):
         try:
             path = data.get("path")

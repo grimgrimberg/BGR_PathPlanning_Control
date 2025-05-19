@@ -14,10 +14,6 @@ class Planner:
         self.target_ind = 0
         log.debug("Path Planner initialized successfully")
 
-    def init(self, providers):
-        log.info("Planner initialization with providers")
-        pass
-
     def update(self, data: Dict, dt: float):
         try:
             cones, car_position, car_direction = data.get("cones")

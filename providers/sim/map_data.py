@@ -6,6 +6,7 @@ from fsd_path_planning import ConeTypes
 class SimMapProvider:
     def __init__(self):
         self.client = FSDSClientSingleton.instance()
+        log.debug(f"Provider {self.__class__.__name__} initialized successfully")
 
     def start(self):  pass
     def stop(self):   pass

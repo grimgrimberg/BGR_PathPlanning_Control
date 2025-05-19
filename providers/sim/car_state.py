@@ -4,10 +4,14 @@ from providers.sim.sim_util import FSDSClientSingleton
 from sub_modules.fsds.client import FSDSClient   # your existing AirSim wrapper
 from sub_modules.fsds.utils import to_eularian_angles
 from core.data.car_state import State
+import logging
 
+log = logging.getLogger("SimLogger")
 class SimCarStateProvider:
     def __init__(self):
         self.client = FSDSClientSingleton.instance()
+        log.debug(f"Provider {self.__class__.__name__} initialized successfully")
+        
 
     def start(self):  pass
     def stop(self):   pass

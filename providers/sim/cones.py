@@ -14,6 +14,8 @@ log = logging.getLogger("SimLogger")
 class SimConeProvider:
     def __init__(self):
         self.client = FSDSClientSingleton.instance()
+        log.debug(f"Provider {self.__class__.__name__} initialized successfully")
+    
     def start(self):     pass
     def stop(self):      pass
 
