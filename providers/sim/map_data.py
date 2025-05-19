@@ -2,6 +2,9 @@ from typing import Dict
 import numpy as np
 from providers.sim.sim_util import FSDSClientSingleton, get_car_orientation
 from fsd_path_planning import ConeTypes
+import logging
+
+log = logging.getLogger("SimLogger")
 
 class SimMapProvider:
     def __init__(self):

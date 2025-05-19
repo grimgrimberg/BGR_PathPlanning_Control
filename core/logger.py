@@ -26,7 +26,7 @@ def visualize_timing_data():
 # Create a safe filename for the log file
 def get_safe_log_filename():
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")  # Format: YYYY-MM-DD_HH-MM-SS
-    return f'logs/formula_{timestamp}.log'
+    return f'output/logs/formula_{timestamp}.log'
 
 # Enhanced logging configuration
 logging_config = {
@@ -60,7 +60,7 @@ logging_config = {
             'class': 'logging.handlers.RotatingFileHandler',
             'level': 'ERROR',
             'formatter': 'detailed',
-            'filename': 'logs/formula_errors.log',
+            'filename': f'output/logs/formula_errors_{time.strftime("%Y-%m-%d_%H-%M-%S")}.log',
             'maxBytes': 10485760,  # 10MB
             'backupCount': 5
         },
@@ -68,7 +68,7 @@ logging_config = {
             'class': 'logging.handlers.RotatingFileHandler',
             'level': 'INFO',
             'formatter': 'detailed',
-            'filename': 'logs/formula_performance.log',
+            'filename': f'output/logs/formula_performance_{time.strftime("%Y-%m-%d_%H-%M-%S") }.log',
             'maxBytes': 10485760,  # 10MB
             'backupCount': 3
         }
@@ -104,7 +104,7 @@ logging_config = {
 def init_logger():
     """Initialize the enhanced logging system."""
     # Ensure the logs directory exists
-    os.makedirs("logs", exist_ok=True)
+    os.makedirs("output/logs", exist_ok=True)
     
     # Initialize the logger with the enhanced configuration
     logging.config.dictConfig(logging_config)
