@@ -25,7 +25,7 @@ class Controller:
         log.debug(f"Controller initialized with target speed: {conf.TARGET_SPEED}, "
                  f"lookahead distance: {conf.LOOKAHEAD_DISTANCE}")
 
-    def update(self, data: Dict, dt: float):
+    def update(self, data: Dict):
         try:
             path = data.get("path")
             cx = data.get("cx")
@@ -68,10 +68,10 @@ class Controller:
                 steering if steering else 0.0,
                 acceleration if acceleration else 0.0,
                 self.accel_ctrl.maxspeed if self.accel_ctrl.maxspeed else 0.0,
-                v_linear= 0,
-                v_angular=0,
-                a_linear=0,
-                a_angular=0
+                v_linear= car_state.v_linear,
+                v_angular=car_state.v_angular,
+                a_linear=car_state.a_angular,
+                a_angular=car_state.a_linear
                 )
             data["states"] = self.states # expose to other nodes
             # Log control decisions

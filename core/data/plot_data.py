@@ -22,3 +22,5 @@ class PlotData:
     steering: Optional[float] = None
     acceleration: Optional[float] = None
     full_path: Optional[List[tuple]] = field(default_factory=list)
+    X: Optional[List] = field(default_factory=list)
+    Y: Optional[List] = field(default_factory=list)

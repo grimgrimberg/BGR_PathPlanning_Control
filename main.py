@@ -5,7 +5,7 @@ nodes pipeline.  Use --help for options.
 """
 import argparse
 import logging
-from core.control_manager import ControlManager
+from core.manager import Manager
 from providers.sim.car_state import SimCarStateProvider
 from providers.sim.cones     import SimConeProvider
 from providers.sim.map_data  import SimMapProvider
@@ -43,7 +43,7 @@ def build_manager(args):
         Controller()             # produces throttle / steer commands
     ]
 
-    return ControlManager(providers, nodes, dt=args.dt, enable_plots=args.plot, output_dir=args.output_dir)
+    return Manager(providers, nodes, dt=args.dt, enable_plots=args.plot, output_dir=args.output_dir)
 
 def main():
     args = cli()

@@ -17,7 +17,7 @@ class Vehicle_config():
 
     # PID Controller parameters
     kp_accel = 0.35
-    ki_accel = 0.4
+    ki_accel = 0.3
     kd_accel = 0.3
 
     # Curvature exponantial decay factor

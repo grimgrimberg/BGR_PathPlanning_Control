@@ -5,10 +5,11 @@ from core.data.plot_data import PlotData
 from core.visualization import PlotManager
 from pathlib import Path
 from core.logger import log_timing
+import numpy as np
 
 log = logging.getLogger("ControlManager")
 
-class ControlManager:
+class Manager:
     def __init__(self, providers, nodes, dt, enable_plots, output_dir):
         log.info("Initializing Control Manager")
         self.providers = providers
@@ -63,7 +64,7 @@ class ControlManager:
                 t_update_nodes = time.perf_counter()
                 try:
                     for n in self.nodes:
-                        n.update(data, dt)
+                        n.update(data)
                         log.debug(f"Updated node {n.__class__.__name__}")
                 except Exception as e:
                     log.error(f"Error updating nodes: {str(e)}", exc_info=True)
@@ -131,6 +132,7 @@ class ControlManager:
             if self.plot_data.states is not None and self.plot_data.cx is not None and self.plot_data.cy is not None:
                 # Path tracking plot
                 self.plotter.show(self.plot_data.cx, self.plot_data.cy, self.plot_data.states)
+                self.plotter.plot_path_deviation1(self.plot_data.cx, self.plot_data.cy, self.plot_data.states, self.plot_data.X, self.plot_data.Y,self.plot_data.cones_map,self.plot_data.cones_lidar)
                 
                 # Speed profile
                 self.plotter.plot_speed_profile(self.plot_data.states)
@@ -149,10 +151,10 @@ class ControlManager:
                 # TODO: add to carState all atributes needed for the plots
                 # # Acceleration plots
                 # self.plotter.plot_all_accelerations(self.plot_data.states)
-                # self.plotter.plot_gg(self.plot_data.states)
+                self.plotter.plot_gg(self.plot_data.states)
                 
                 # Cross track error
-                if hasattr(self.plotter, 'cte_history') and len(self.plotter.cte_history) > 0:
+                if hasattr(self.plot_data, 'cte_history') and len(self.plot_data.cte_history) > 0:
                     self.plotter.plot_cte()
             
             # Save all generated plots
@@ -176,3 +178,6 @@ class ControlManager:
         self.plot_data.target_ind = data.get("target_ind")
         self.plot_data.v_log = data.get("v_log")
         self.plot_data.full_path = data.get("full_path", [])
+        path_track = np.column_stack((np.arange(len(data.get("cx"))), data.get("cx"), data.get("cy"))) #List of XY cords of track
+        self.plot_data.X.append(path_track[:5,1])
+        self.plot_data.Y.append(-path_track[:5,2])

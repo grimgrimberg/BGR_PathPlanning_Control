@@ -17,7 +17,7 @@ log = logging.getLogger("PlotManager")
 
 _FIG_COUNTER = itertools.count(1)        # fig_001.png, fig_002.png, …
 _FIGS: List[Figure] = []
-_LIVE = True
+_LIVE = True #doesnt do shit as of right now.
 
 def _auto_fig() -> Figure:
     """Create a figure, keep it for later saving, and return it."""
@@ -260,6 +260,8 @@ class PlotManager:
 
     @staticmethod
     def plot_path_deviation1(cx, cy, states, X,Y,cones_by_type,cones_lidar):
+        fig = _auto_fig()
+
         # x , y = zip(*full_path)
         # x , y = full_path[0],full_path[1]
         # x=full_path[:,1]
@@ -296,7 +298,7 @@ class PlotManager:
         print("MSE:", mse)
 
 
-        plt.figure()
+        # plt.figure()
         # plt.plot(cx, -cy, label="Planned Path", linestyle="--", color="r")
         plt.plot(states.x, states.y, label="Actual Path", linestyle="-", color="b")
         PlotManager.plot_cones(cones_by_type, cones_lidar)
@@ -315,7 +317,8 @@ class PlotManager:
         plt.ylabel("Y [m]")
         plt.legend()
         plt.grid()
-        plt.show()
+        # plt.show()
+        _maybe_show()
 
     @staticmethod
     def plot_speed_profile(states, dt=conf.dt):
