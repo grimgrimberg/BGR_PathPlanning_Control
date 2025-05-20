@@ -78,9 +78,9 @@
 import time
 import csv
 import numpy as np
-from test_runs_system_id import generate_test_profiles, test_course_driver, log_data, identify_dynamics
-from map_visualization import Visualizer
-from sim_util import sim_car_controls
+from old.test_runs_system_id import generate_test_profiles, test_course_driver, log_data, identify_dynamics
+from core.visualization import Visualizer
+from providers.sim.sim_util import sim_car_controls
 
 
 def calibration_loop(client, duration=50, dt=0.05):

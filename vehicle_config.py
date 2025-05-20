@@ -11,17 +11,17 @@ class Vehicle_config():
     c_f = 16000  # Cornering stiffness front [N/rad]
     c_r = 17000  # Cornering stiffness rear [N/rad]
     mu = 1.0  # Coefficient of friction
-    TARGET_SPEED = 20 / 3.6  # Target speed [m/s]
+    TARGET_SPEED = 25 / 3.6  # Target speed [m/s]
 
     WB = l_f + l_r 
 
     # PID Controller parameters
-    kp_accel = 0.85
-    ki_accel = 0.9
-    kd_accel = 0.01
+    kp_accel = 0.35
+    ki_accel = 0.3
+    kd_accel = 0.3
 
     # Curvature exponantial decay factor
-    k_expo = 0.5      # Sensitivity parameter for exponential decay
+    k_expo = 0.05      # Sensitivity parameter for exponential decay
     #for stanley
     k_stanley=0.7
     k_soft_stanley=0.01
@@ -34,6 +34,6 @@ class Vehicle_config():
 
     MAX_STEER = np.deg2rad(30)  # [rad]
     # Lookahead distance for pure pursuit
-    LOOKAHEAD_DISTANCE =  5# [m]
+    LOOKAHEAD_DISTANCE = 5.5# [m]
     #timestep
     dt = 0.05
