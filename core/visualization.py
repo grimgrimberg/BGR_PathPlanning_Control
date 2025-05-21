@@ -292,8 +292,8 @@ class PlotManager:
 
         # Calculate the MSE
         mse = np.mean((actual_x_trunc - planned_x_trunc)**2 + (actual_y_trunc - planned_y_trunc)**2)
-        rmse = np.sqrt(mse)/100
         mse = mse/100
+        rmse = np.sqrt(mse)
 
         print("MSE:", mse)
 

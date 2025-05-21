@@ -28,4 +28,5 @@ class SimCarStateProvider:
         v_angular = car_state.kinematics_estimated.angular_velocity
         a_linear = car_state.kinematics_estimated.linear_acceleration
         a_angular = car_state.kinematics_estimated.angular_acceleration
-        return {"car_state": State(x=x, y=y, yaw=yaw, v=v,v_linear=v_linear,v_angular=v_angular,a_angular=a_angular,a_linear=a_linear)}   # keep as raw object for now
+        timestamp = car_state.timestamp
+        return {"car_state": State(x=x, y=y, yaw=yaw, v=v,v_linear=v_linear,v_angular=v_angular,a_angular=a_angular,a_linear=a_linear,timestamp=timestamp)}   # keep as raw object for now
