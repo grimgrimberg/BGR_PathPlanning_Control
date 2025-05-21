@@ -24,3 +24,4 @@ class PlotData:
     full_path: Optional[List[tuple]] = field(default_factory=list)
     X: Optional[List] = field(default_factory=list)
     Y: Optional[List] = field(default_factory=list)
+    intermediate: Optional[Dict] = field(default_factory=dict)

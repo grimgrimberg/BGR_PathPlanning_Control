@@ -2,7 +2,7 @@ from typing import Dict, List
 import logging
 import numpy as np
 from vehicle_config import Vehicle_config as conf
-from fsd_path_planning import PathPlanner, MissionTypes
+from fsd_path_planning import PathPlanner, MissionTypes, ConeTypes
 
 log = logging.getLogger("Planner")
 
@@ -34,9 +34,30 @@ class Planner:
                 
                 # Calculate new path
                 try:
-                    self.current_path = self.planner.calculate_path_in_global_frame(
-                        cones, car_position, car_direction, return_intermediate_results=False
+                    
+                    out = self.planner.calculate_path_in_global_frame(
+                        cones, car_position, car_direction, return_intermediate_results=True
                     )
+
+                    (
+                        path,
+                        sorted_left,
+                        sorted_right,
+                        left_cones_with_virtual,
+                        right_cones_with_virtual,
+                        left_to_right_match,
+                        right_to_left_match,
+                    ) = out
+                    self.current_path = path
+                    all_cones = cones[ConeTypes.UNKNOWN]
+                    
+                    data["intermediate_results"] = {
+                        "left_cones_with_virtual": left_cones_with_virtual,
+                        "right_cones_with_virtual": right_cones_with_virtual,
+                        "left_to_right_match": left_to_right_match,
+                        "right_to_left_match": right_to_left_match,
+                        "all_cones": all_cones,
+                    }
                     log.info("Path calculation successful")
                     self.target_ind = 0
                 except Exception as e:
