@@ -58,7 +58,8 @@ class PlotManager:
             self.data.state,
             self.data.steering,
             self.data.v_log,
-            self.data.cones_lidar
+            self.data.cones_lidar,
+            self.data.intermediate,
         )
     # ---------------------------------------------------------------- #
     @staticmethod
@@ -167,7 +168,7 @@ class PlotManager:
     #     plt.show()
 
     @staticmethod
-    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar):
+    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar, intermediate_results={}):
         """
         Draw a single frame of the animation.
         """
@@ -177,6 +178,27 @@ class PlotManager:
         PlotManager.plot_cones(cones_by_type, cones_lidar)
         plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
         PlotManager.plot_car(state.x, -state.y, -state.yaw, steer=di)
+        plt.plot(*intermediate_results["left_cones_with_virtual"].T, "o-", c="blue")
+        plt.plot(*intermediate_results["right_cones_with_virtual"].T, "o-", c="yellow")
+        plt.plot(*intermediate_results["left_cones_with_virtual"].T, "o-", c="blue")
+        plt.plot(*intermediate_results["right_cones_with_virtual"].T, "o-", c="yellow")
+        plt.plot(*intermediate_results["all_cones"].T, "o", c="k")
+        for left, right_idx in zip(intermediate_results["left_cones_with_virtual"], intermediate_results["left_to_right_match"]):
+            plt.plot(
+                [left[0], intermediate_results["right_cones_with_virtual"][right_idx][0]],
+                [left[1], intermediate_results["right_cones_with_virtual"][right_idx][1]],
+                "-",
+                c="#7CB9E8"
+            )
+        for right, left_idx in zip(intermediate_results["right_cones_with_virtual"], intermediate_results["right_to_left_match"]):
+            plt.plot(
+                [right[0], intermediate_results["left_cones_with_virtual"][left_idx][0]],
+                [right[1], intermediate_results["left_cones_with_virtual"][left_idx][1]],
+                "-",
+                c="gold",
+                alpha=0.5,
+            )
+
         plt.axis("equal")
         plt.grid(True)
         plt.title(f"Speed [km/h]: {state.v * 3.6:.2f}")
@@ -292,8 +314,8 @@ class PlotManager:
 
         # Calculate the MSE
         mse = np.mean((actual_x_trunc - planned_x_trunc)**2 + (actual_y_trunc - planned_y_trunc)**2)
-        rmse = np.sqrt(mse)/100
         mse = mse/100
+        rmse = np.sqrt(mse)
 
         print("MSE:", mse)
 

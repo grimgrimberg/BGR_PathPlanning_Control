@@ -49,6 +49,7 @@ class Controller:
                 v_angular= car_state.v_angular,
                 a_angular= car_state.a_angular,
                 a_linear= car_state.a_linear,
+                timestamp=car_state.timestamp
             )
           
             
@@ -71,7 +72,8 @@ class Controller:
                 v_linear= car_state.v_linear,
                 v_angular=car_state.v_angular,
                 a_linear=car_state.a_angular,
-                a_angular=car_state.a_linear
+                a_angular=car_state.a_linear,
+                timestamp=car_state.timestamp
                 )
             data["states"] = self.states # expose to other nodes
             # Log control decisions

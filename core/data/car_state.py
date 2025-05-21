@@ -75,9 +75,10 @@ class States:
         # Explicitly separate longitudinal and lateral acceleration:
         self.a_longitudinal = []  # explicitly longitudinal (x-axis)
         self.a_lateral = []       # explicitly lateral (y-axis)
+        self.timestamp = []  # Store timestamps if needed
 
     def append(self, t, state, steering=None, acceleration=None, v_log=None, 
-               v_linear=None, v_angular=None, a_linear=None, a_angular=None):
+               v_linear=None, v_angular=None, a_linear=None, a_angular=None, timestamp=None):
         self.x.append(state.x)
         self.y.append(state.y)
         self.yaw.append(state.yaw)
@@ -90,6 +91,7 @@ class States:
         # Explicitly store components from Vector3r (linear acceleration):
         self.a_longitudinal.append(a_linear.x_val if a_linear else 0)
         self.a_lateral.append(a_linear.y_val if a_linear else 0)
+        self.timestamp.append(timestamp)
 
         if steering is not None:
             self.steering.append(steering)
@@ -99,7 +101,7 @@ class States:
             self.v_log.append(v_log)
             
 class State:
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, beta=0.0, r=0.0,v_linear=0,v_angular=0,a_angular=0,a_linear=0):
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, beta=0.0, r=0.0,v_linear=0,v_angular=0,a_angular=0,a_linear=0, timestamp=0):
         self.x = x
         self.y = y
         self.yaw = yaw  # Vehicle heading
@@ -111,6 +113,7 @@ class State:
         self.v_angular=v_angular
         self.a_angular=a_angular
         self.a_linear=a_linear
+        self.timestamp = timestamp
 
     def update(self, a, delta):
         # Dynamic bicycle model integration step

@@ -3,12 +3,14 @@
 Run either a simulation or calibration session with a pluggable provider/
 nodes pipeline.  Use --help for options.
 """
+import sys
 import argparse
 import logging
 from core.manager import Manager
 from providers.sim.car_state import SimCarStateProvider
 from providers.sim.cones     import SimConeProvider
 from providers.sim.map_data  import SimMapProvider
+from providers.lidar.cones   import LidarConeProvider
 # Swap these two for ROS2 later:
 # from providers.ros.car_state import ROSCarStateProvider
 # from providers.ros.cones     import ROSConeProvider
@@ -16,6 +18,8 @@ from providers.sim.map_data  import SimMapProvider
 from nodes.planner     import Planner
 from nodes.controller  import Controller
 from core.logger import init_logger
+
+
 
 def cli() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -34,7 +38,8 @@ def build_manager(args):
     # Providers (simulation flavour)
     providers = [
         SimCarStateProvider(),      # vehicle pose & twist
-        SimConeProvider(),          # LiDAR-derived track cones
+        # LidarConeProvider(),          # LiDAR-derived track cones
+        SimConeProvider(),          # simulated cones
         SimMapProvider()
     ]
 

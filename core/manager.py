@@ -181,3 +181,4 @@ class Manager:
         path_track = np.column_stack((np.arange(len(data.get("cx"))), data.get("cx"), data.get("cy"))) #List of XY cords of track
         self.plot_data.X.append(path_track[:5,1])
         self.plot_data.Y.append(-path_track[:5,2])
+        self.plot_data.intermediate = data.get("intermediate_results", {})
