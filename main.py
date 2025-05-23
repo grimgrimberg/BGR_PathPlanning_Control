@@ -32,16 +32,22 @@ def cli() -> argparse.Namespace:
                    help="Main-loop period [s]")
     p.add_argument("--output_dir", type=str, default="output",
                    help="Output directory for plots and data")
+    p.add_argument("--simulation", action="store_true",)
     return p.parse_args()
 
 def build_manager(args):
     # Providers (simulation flavour)
-    providers = [
-        SimCarStateProvider(),      # vehicle pose & twist
-        # LidarConeProvider(),          # LiDAR-derived track cones
-        SimConeProvider(),          # simulated cones
-        SimMapProvider()
-    ]
+    if args.simulation:
+        providers = [
+            SimCarStateProvider(),      # vehicle pose & twist
+            SimConeProvider(),          # simulated cones
+            SimMapProvider()
+        ]
+    else:
+        providers = [
+            # SimCarStateProvider(),      # vehicle pose & twist
+            LidarConeProvider(),          # LiDAR-derived track cones
+        ]
 
     nodes = [
         Planner(),               # produces path based on cones & map

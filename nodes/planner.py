@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from vehicle_config import Vehicle_config as conf
 from fsd_path_planning import PathPlanner, MissionTypes, ConeTypes
+from types import SimpleNamespace
 
 log = logging.getLogger("Planner")
 
@@ -70,8 +71,8 @@ class Planner:
             # Update target index
             prev_target_ind = self.target_ind
             while self.target_ind < len(cx) - 1:
-                distance = np.hypot(cx[self.target_ind] - data["car_state"].x,
-                                 cy[self.target_ind] - data["car_state"].y)
+                distance = np.hypot(cx[self.target_ind] - data.get("car_state", SimpleNamespace(**{'x':0})).x,
+                                 cy[self.target_ind] - data.get("car_state", SimpleNamespace(**{'y':0})).y)
                 if distance >= conf.LOOKAHEAD_DISTANCE:
                     break
                 self.target_ind += 1

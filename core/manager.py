@@ -10,7 +10,7 @@ import numpy as np
 log = logging.getLogger("ControlManager")
 
 class Manager:
-    def __init__(self, providers, nodes, dt, enable_plots, output_dir):
+    def __init__(self, providers, nodes, dt, enable_plots, output_dir, simulation=False):
         log.info("Initializing Control Manager")
         self.providers = providers
         self.nodes = nodes
@@ -51,7 +51,10 @@ class Manager:
                 try:
                     data = {}
                     for p in self.providers:
+                        start_lidar = time.time()
                         provider_data = p.read()
+                        print(f"Provider {p.__class__.__name__} read time: {time.time() - start_lidar:.4f}s")
+
                         log.debug(f"Read from {p.__class__.__name__}: "
                                 f"{len(provider_data) if provider_data else 0} items")
                         data.update(provider_data)
@@ -122,7 +125,7 @@ class Manager:
     def _generate_final_plots(self):
         """Generate and save all plots at the end of the run."""
         log.info("Generating final plots...")
-        
+        self.plotter.export_to_video("video.mp4")
         try:
             # Create plots directory
             plots_dir = self.output_dir / "plots"

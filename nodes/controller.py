@@ -87,7 +87,7 @@ class Controller:
             
             # Apply controls and log the action
             log.info(f"Applying controls - Steering: {-steering:.3f}, Acceleration: {acceleration:.3f}")
-            sim_car_controls(FSDSClientSingleton.instance(), -steering, acceleration)
+            sim_car_controls(FSDSClientSingleton.instance(), -steering, 0)
             
         except Exception as e:
             log.error(f"Error in controller update: {str(e)}", exc_info=True)

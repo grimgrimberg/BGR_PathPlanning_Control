@@ -12,13 +12,15 @@ import numpy as np
 from core.data.plot_data import PlotData
 from fsd_path_planning import ConeTypes
 from vehicle_config import Vehicle_config as conf
+import cv2
+from io import BytesIO
 
 log = logging.getLogger("PlotManager")
 
 _FIG_COUNTER = itertools.count(1)        # fig_001.png, fig_002.png, …
 _FIGS: List[Figure] = []
 _LIVE = True #doesnt do shit as of right now.
-
+fig = plt.figure(figsize=(8, 6), dpi=100)
 def _auto_fig() -> Figure:
     """Create a figure, keep it for later saving, and return it."""
     fig = plt.figure()
@@ -38,7 +40,9 @@ class PlotManager:
         #     plt.ion()
         # else:
         #     matplotlib.use("Agg")  # headless / non-interactive
+        self.frames = []  # list of frames
         self.data = PlotData()  # single data object
+        
 
         # # histories
         # self.cte_history: List[float] = []
@@ -49,7 +53,7 @@ class PlotManager:
     def update(self, _data: Dict[str, Any]):
         self.data = _data.get("plot_data", self.data)
         # if _LIVE:
-        PlotManager.draw_frame(
+        self.draw_frame(
             self.data.cx,
             self.data.cy,
             self.data.states,
@@ -134,6 +138,8 @@ class PlotManager:
         """
         Plot cones based on their type (left or right).
         """
+        if type(cones_by_type) != List:
+            return
         cones_left = cones_by_type[ConeTypes.LEFT]
         cones_right = cones_by_type[ConeTypes.RIGHT]
         orange_big = cones_by_type[ConeTypes.ORANGE_BIG]
@@ -160,49 +166,91 @@ class PlotManager:
         if len(cones_lidar) > 0 and isinstance(cones_lidar, np.ndarray):
             plt.plot(cones_lidar[:, 0], cones_lidar[:, 1], "og", label="Lidar Cones",markersize=2,)
 
-    # @staticmethod
-    # def plot_route(path):
-    #     cx, cy = path[:, 1], path[:, 2]
-    #     plt.figure()
-    #     plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
-    #     plt.show()
 
-    @staticmethod
-    def draw_frame(cx, cy, states, cones_by_type, target_ind, state, di, v_log, cones_lidar, intermediate_results={}):
-        """
-        Draw a single frame of the animation.
-        """
+    def draw_frame(
+        self, cx, cy, states, cones_by_type, target_ind,
+        state, di, v_log, cones_lidar, intermediate_results={}, fig=None
+    ):
+        """Draw one animation frame, quietly skipping bad inputs."""
         plt.cla()
-        plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
-        plt.plot(states.x, states.y, "-c", label="Vehicle Path")
-        PlotManager.plot_cones(cones_by_type, cones_lidar)
-        plt.plot(cx[target_ind], -cy[target_ind], "xg", label="Target", markersize=10, linewidth=1)
-        PlotManager.plot_car(state.x, -state.y, -state.yaw, steer=di)
-        plt.plot(*intermediate_results["left_cones_with_virtual"].T, "o-", c="blue")
-        plt.plot(*intermediate_results["right_cones_with_virtual"].T, "o-", c="yellow")
-        plt.plot(*intermediate_results["left_cones_with_virtual"].T, "o-", c="blue")
-        plt.plot(*intermediate_results["right_cones_with_virtual"].T, "o-", c="yellow")
-        plt.plot(*intermediate_results["all_cones"].T, "o", c="k")
-        for left, right_idx in zip(intermediate_results["left_cones_with_virtual"], intermediate_results["left_to_right_match"]):
-            plt.plot(
-                [left[0], intermediate_results["right_cones_with_virtual"][right_idx][0]],
-                [left[1], intermediate_results["right_cones_with_virtual"][right_idx][1]],
-                "-",
-                c="#7CB9E8"
-            )
-        for right, left_idx in zip(intermediate_results["right_cones_with_virtual"], intermediate_results["right_to_left_match"]):
-            plt.plot(
-                [right[0], intermediate_results["left_cones_with_virtual"][left_idx][0]],
-                [right[1], intermediate_results["left_cones_with_virtual"][left_idx][1]],
-                "-",
-                c="gold",
-                alpha=0.5,
-            )
 
+        # ───────── Planned path ─────────
+        if cx is not None and cy is not None and len(cx) and len(cy):
+            plt.plot(cx, -cy, "r--", label="Planned Path", linewidth=2.5)
+
+        # ───────── Vehicle path ─────────
+        if states is not None and getattr(states, "x", None) is not None and len(states.x):
+            plt.plot(states.x, states.y, "-c", label="Vehicle Path")
+
+        # ───────── Cones from lidar / labels ─────────
+        if cones_by_type is not None or cones_lidar is not None:
+            PlotManager.plot_cones(cones_by_type, cones_lidar)
+
+        # ───────── Target point ─────────
+        if (cx is not None and cy is not None and len(cx)
+                and target_ind is not None and 0 <= target_ind < len(cx)):
+            plt.plot(cx[target_ind], -cy[target_ind], "xg",
+                     label="Target", markersize=10, linewidth=1)
+
+        # ───────── Vehicle body ─────────
+        if state is not None:
+            PlotManager.plot_car(state.x, -state.y, -state.yaw, steer=di)
+        else:
+            PlotManager.plot_car(0, 0, 0, 0)
+
+        # ───────── Intermediate results ─────────
+        ir = intermediate_results or {}
+        left  = ir.get("left_cones_with_virtual")
+        right = ir.get("right_cones_with_virtual")
+        all_c = ir.get("all_cones")
+
+        if left is not None and len(left) and np.asarray(left).shape[1] == 2:
+            plt.plot(*np.asarray(left).T, "o-", c="blue")
+
+        if right is not None and len(right) and np.asarray(right).shape[1] == 2:
+            plt.plot(*np.asarray(right).T, "o-", c="yellow")
+
+        if all_c is not None and len(all_c) and np.asarray(all_c).shape[1] == 2:
+            plt.plot(*np.asarray(all_c).T, "o", c="k")
+
+        # Draw matching lines only if both lists exist and indices are valid
+        l2r = ir.get("left_to_right_match")
+        r2l = ir.get("right_to_left_match")
+
+        if (left is not None and right is not None
+                and l2r is not None and len(l2r)):
+            for lpt, r_idx in zip(left, l2r):
+                if 0 <= r_idx < len(right):
+                    plt.plot([lpt[0], right[r_idx][0]],
+                             [lpt[1], right[r_idx][1]],
+                             "-", c="#7CB9E8")
+
+        if (right is not None and left is not None
+                and r2l is not None and len(r2l)):
+            for rpt, l_idx in zip(right, r2l):
+                if 0 <= l_idx < len(left):
+                    plt.plot([rpt[0], left[l_idx][0]],
+                             [rpt[1], left[l_idx][1]],
+                             "-", c="gold", alpha=0.5)
+
+        # ───────── Cosmetics ─────────
         plt.axis("equal")
         plt.grid(True)
-        plt.title(f"Speed [km/h]: {state.v * 3.6:.2f}")
-        plt.suptitle(f"target Speed [km/h]: {v_log * 3.6:.2f}")
+
+        if state is not None and hasattr(state, "v"):
+            plt.title(f"Speed [km/h]: {state.v * 3.6:.2f}")
+        # if v_log is not None:
+            # plt.suptitle(f"Target Speed [km/h]: {v_log * 3.6:.2f}")
+        
+        buf = BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        img_array = np.asarray(bytearray(buf.read()), dtype=np.uint8)
+        buf.close()
+
+        # Decode PNG buffer into OpenCV BGR image
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        self.frames.append(img)
         plt.pause(0.00001)
 
     @staticmethod
@@ -481,6 +529,21 @@ class PlotManager:
         ax.set_zlabel('Z')
         ax.set_title(title)
         _maybe_show()
+    
+    
+    def export_to_video(self, output_path, dpi=150, fps=12):
+        """
+        Exports frames using OpenCV VideoWriter.
+        """
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(output_path, fourcc, fps, (self.frames[0].shape[1],self.frames[0].shape[0]))
+        for frame in self.frames:
+            cv2.imshow("frame2", frame)
+            cv2.waitKey(1)
+            writer.write(frame)
+        print(f"Video saved to {output_path}")
+        writer.release()
+
 
     # @staticmethod
     # def plot_acceleration(a_linear,a_angular,dt=conf.dt):
@@ -565,4 +628,3 @@ class PlotManager:
     #     plt.axis("equal")
     #     plt.show()
 
-    #     ###
